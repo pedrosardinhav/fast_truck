@@ -12,8 +12,8 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = PROJECT_DIR / "frontend"
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+FRONTEND_DIR = PROJECT_DIR / "src" / "frontend"
 DB_DIR = PROJECT_DIR / "data"
 DB_PATH = DB_DIR / "fasttruck.db"
 HOST = "127.0.0.1"
@@ -68,30 +68,8 @@ def connect_db() -> sqlite3.Connection:
 
 def initialize_database() -> None:
     with connect_db() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS vehicles (
-                id TEXT PRIMARY KEY,
-                plate TEXT NOT NULL UNIQUE,
-                brand TEXT NOT NULL,
-                model TEXT NOT NULL,
-                year TEXT NOT NULL,
-                color TEXT NOT NULL,
-                body TEXT NOT NULL DEFAULT '',
-                axles TEXT NOT NULL DEFAULT '',
-                fuel TEXT NOT NULL DEFAULT '',
-                km INTEGER NOT NULL DEFAULT 0 CHECK (km >= 0),
-                price REAL NOT NULL CHECK (price >= 0),
-                customized TEXT NOT NULL DEFAULT 'sim' CHECK (customized IN ('sim', 'nao')),
-                notes TEXT NOT NULL DEFAULT '',
-                status TEXT NOT NULL CHECK (status IN ('Disponível', 'Reservado', 'Vendido'))
-            )
-        """)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS app_meta (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL
-            )
-        """)
+        schema_path = PROJECT_DIR / "sql" / "schema.sql"
+        conn.executescript(schema_path.read_text(encoding="utf-8"))
         seeded = conn.execute(
             "SELECT value FROM app_meta WHERE key = 'demo_seeded'"
         ).fetchone()

@@ -70,7 +70,7 @@ Entregar um CRUD simples para cadastrar e gerenciar caminhões da FasTruck, incl
 |---|---|
 | Perda da base por exclusão ou dano ao arquivo SQLite | Manter cópia periódica de `data/fasttruck.db`; não há backup automático nesta etapa. |
 | Placa duplicada por variação de escrita | Normalizar placa e aplicar restrição `UNIQUE` no banco, com validação de formato. |
-| Banco inacessível ou servidor parado | Mostrar erro de conexão e orientar a iniciar `python backend/app.py` na raiz do projeto. |
+| Banco inacessível ou servidor parado | Mostrar erro de conexão e orientar a iniciar `python src/backend/app.py` na raiz do projeto. |
 | Personalização ou características informadas incorretamente | Tratar os campos como informação declarada pelo operador, sem verificação externa. |
 | Acesso indevido caso o servidor seja exposto na rede | Manter escuta local em `127.0.0.1`; a aplicação não foi projetada para acesso remoto. |
 | Erro ao gravar um cadastro | Validar no back-end e devolver resposta de erro sem confirmar a operação. |

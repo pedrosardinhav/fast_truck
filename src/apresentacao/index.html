@@ -67,7 +67,7 @@
             <div class="field-card"><b>Personalização</b><span>Sim ou não, com observações</span></div>
             <div class="field-card"><b>Identificador</b><span>ID gerado pelo servidor ao cadastrar</span></div>
           </div>
-          <div class="example-panel"><div class="example-head"><span>Preparação dos dados</span><span>frontend/app.js</span></div><pre><code>const data = Object.fromEntries(new FormData(form).entries());
+          <div class="example-panel"><div class="example-head"><span>Preparação dos dados</span><span>src/frontend/app.js</span></div><pre><code>const data = Object.fromEntries(new FormData(form).entries());
 data.plate = formatPlate(data.plate);
 data.price = Number(data.price);
 data.km = Number(data.km || 0);</code></pre></div>
@@ -75,7 +75,7 @@ data.km = Number(data.km || 0);</code></pre></div>
         <section class="slide compact-slide" data-title="Banco SQLite">
           <div class="slide-label">Persistência dos veículos</div><h2>Uma tabela no <span>SQLite</span></h2>
           <p class="lead">A API cria a tabela <code>vehicles</code> no arquivo <code>data/fasttruck.db</code>. Cada cadastro ocupa uma linha.</p>
-          <div class="example-panel"><div class="example-head"><span>Colunas e restrições da tabela</span><span>backend/app.py · initialize_database()</span></div><pre><code>CREATE TABLE IF NOT EXISTS vehicles (
+          <div class="example-panel"><div class="example-head"><span>Colunas e restrições da tabela</span><span>sql/schema.sql</span></div><pre><code>CREATE TABLE IF NOT EXISTS vehicles (
     id TEXT PRIMARY KEY,
     plate TEXT NOT NULL UNIQUE,
     brand TEXT NOT NULL,
@@ -97,11 +97,11 @@ data.km = Number(data.km || 0);</code></pre></div>
           <div class="slide-label">Regras antes de gravar</div><h2>A API confere <span>os dados</span></h2>
           <p class="lead">O Python normaliza a placa, exige campos essenciais e rejeita valores inválidos antes do INSERT ou UPDATE.</p>
           <div class="split-code">
-            <div class="example-panel"><div class="example-head"><span>Placa</span><span>backend/app.py · normalize_plate()</span></div><pre><code>plate = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+            <div class="example-panel"><div class="example-head"><span>Placa</span><span>src/backend/app.py · normalize_plate()</span></div><pre><code>plate = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
 if not PLATE_PATTERN.fullmatch(plate):
     raise ValueError("Informe uma placa válida no padrão antigo ou Mercosul.")
 return f"{plate[:3]}-{plate[3:]}"</code></pre></div>
-            <div class="example-panel"><div class="example-head"><span>Preço e quilometragem</span><span>backend/app.py · validate_vehicle()</span></div><pre><code>price = float(payload.get("price", ""))
+            <div class="example-panel"><div class="example-head"><span>Preço e quilometragem</span><span>src/backend/app.py · validate_vehicle()</span></div><pre><code>price = float(payload.get("price", ""))
 km = int(payload.get("km") or 0)
 if not math.isfinite(price) or price &lt; 0 or km &lt; 0:
     raise ValueError("Valor e quilometragem devem ser iguais ou maiores que zero.")</code></pre></div>
@@ -114,7 +114,7 @@ if not math.isfinite(price) or price &lt; 0 or km &lt; 0:
           <div class="endpoint"><span class="method">POST</span><code>/api/vehicles</code><span>→</span><span>201 Criado</span></div>
           <div class="content-grid"><div class="visual"><div class="visual-head"><span>Novo caminhão</span><em>Exemplo do formulário</em></div><div class="mini-form"><div class="mini-field">Placa *<b>FTK-1A26</b></div><div class="mini-field">Status *<b>Disponível</b></div><div class="mini-field">Marca *<b>Iveco</b></div><div class="mini-field">Modelo *<b>S-Way 480</b></div><div class="mini-field">Ano fab. / modelo *<b>2022 / 2023</b></div><div class="mini-field">Valor anunciado *<b>R$ 625.000</b></div><div class="mini-field full">Personalizações<b>Defletor de ar · rodas de alumínio</b></div></div><span class="fake-button">Cadastrar caminhão →</span></div>
             <aside class="steps"><h3>O que acontece?</h3><ol><li><i>1</i>O navegador envia JSON para a API.</li><li><i>2</i>Python valida e normaliza a placa.</li><li><i>3</i>SQLite grava o veículo com um ID.</li><li><i>4</i>A lista e os indicadores são atualizados.</li></ol></aside></div>
-          <div class="example-panel"><div class="example-head"><span>Gravação do cadastro</span><span>backend/app.py · do_POST()</span></div><pre><code>vehicle = validate_vehicle(self.read_json())
+          <div class="example-panel"><div class="example-head"><span>Gravação do cadastro</span><span>src/backend/app.py · do_POST()</span></div><pre><code>vehicle = validate_vehicle(self.read_json())
 vehicle["id"] = str(uuid.uuid4())
 with connect_db() as conn:
     conn.execute("""INSERT INTO vehicles
@@ -129,7 +129,7 @@ with connect_db() as conn:
           <div class="endpoint"><span class="method get">GET</span><code>/api/vehicles</code><span>→</span><span>200 OK · lista JSON</span></div>
           <div class="content-grid"><div class="visual"><div class="visual-head"><span>Caminhões cadastrados</span><em>Exemplo da lista</em></div><table class="read-table"><thead><tr><th>Veículo</th><th>Placa</th><th>Status</th><th>Valor</th></tr></thead><tbody><tr><td>Volvo FH 540</td><td>RTA-4C27</td><td><span class="badge">Disponível</span></td><td>R$ 689.900</td></tr><tr><td>Scania R 450</td><td>BZX-8H41</td><td><span class="badge gold">Reservado</span></td><td>R$ 572.000</td></tr><tr><td>Mercedes Actros 2651</td><td>GKM-2D96</td><td><span class="badge">Disponível</span></td><td>R$ 745.000</td></tr></tbody></table></div>
             <aside class="steps"><h3>O painel resume</h3><ol><li><i>↗</i>Total de veículos cadastrados</li><li><i>✓</i>Quantos estão disponíveis</li><li><i>✦</i>Quantos têm personalização</li><li><i>R$</i>Soma dos valores anunciados</li></ol><div class="chips"><span class="chip">Busca por placa</span><span class="chip">Filtro por status</span></div></aside></div>
-          <div class="example-panel"><div class="example-head"><span>Consulta do estoque</span><span>backend/app.py · do_GET()</span></div><pre><code>vehicles = [dict(row) for row in conn.execute(
+          <div class="example-panel"><div class="example-head"><span>Consulta do estoque</span><span>src/backend/app.py · do_GET()</span></div><pre><code>vehicles = [dict(row) for row in conn.execute(
     "SELECT * FROM vehicles ORDER BY rowid DESC"
 )]
 self.send_json(200, vehicles)</code></pre></div>
@@ -140,7 +140,7 @@ self.send_json(200, vehicles)</code></pre></div>
           <div class="endpoint"><span class="method put">PUT</span><code>/api/vehicles/{id}</code><span>→</span><span>200 Atualizado</span></div>
           <div class="content-grid"><div class="visual"><div class="visual-head"><span>Editar caminhão · Iveco S-Way</span><em>ID preservado</em></div><div class="record"><div class="record-top"><span>HJK-5A14 <em>antes</em></span><span>R$ 625.000</span></div><p>Modelo: S-Way 480 · Personalização: defletor + rodas</p></div><div style="text-align:center;color:#8a9bb0;padding:3px">↓ alterar e salvar</div><div class="record"><div class="record-top"><span>HJK-5A14 <em>depois</em></span><span>R$ 639.000</span></div><p>Modelo: S-Way 480 · Personalização: defletor + rodas + cabine premium</p></div></div>
             <aside class="steps"><h3>Regras na edição</h3><ol><li><i>1</i>O formulário carrega os valores atuais.</li><li><i>2</i>O operador altera preço ou características.</li><li><i>3</i>A placa continua única entre os veículos.</li><li><i>4</i>A lista reflete os dados atualizados.</li></ol></aside></div>
-          <div class="example-panel"><div class="example-head"><span>Atualização da mesma linha</span><span>backend/app.py · do_PUT()</span></div><pre><code>vehicle = validate_vehicle(self.read_json())
+          <div class="example-panel"><div class="example-head"><span>Atualização da mesma linha</span><span>src/backend/app.py · do_PUT()</span></div><pre><code>vehicle = validate_vehicle(self.read_json())
 vehicle["id"] = vehicle_id
 cursor = conn.execute(
     """UPDATE vehicles SET
@@ -155,7 +155,7 @@ cursor = conn.execute(
           <div class="endpoint"><span class="method delete">DELETE</span><code>/api/vehicles/{id}</code><span>→</span><span>200 Removido</span></div>
           <div class="content-grid"><div class="visual"><div class="visual-head"><span>Confirmação de exclusão</span><em>Proteção contra clique acidental</em></div><div class="record"><div class="record-top"><span>Excluir Volvo VM 330?</span><em>MNO-7D82</em></div><p>O caminhão será removido do banco SQLite local.</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><span class="fake-button" style="margin:0;background:#f0f3f7;color:#52647a">Manter veículo</span><span class="fake-button" style="margin:0;background:#b45b52">Excluir</span></div></div></div>
             <aside class="steps"><h3>Depois da confirmação</h3><ol><li><i>1</i>Python apaga pelo ID do registro.</li><li><i>2</i>A lista remove o caminhão.</li><li><i>3</i>Os totais do painel são recalculados.</li><li><i>×</i>Cancelar fecha sem mudar o banco.</li></ol></aside></div>
-          <div class="example-panel"><div class="example-head"><span>Exclusão após confirmar na tela</span><span>backend/app.py · do_DELETE()</span></div><pre><code>with connect_db() as conn:
+          <div class="example-panel"><div class="example-head"><span>Exclusão após confirmar na tela</span><span>src/backend/app.py · do_DELETE()</span></div><pre><code>with connect_db() as conn:
     cursor = conn.execute("DELETE FROM vehicles WHERE id = ?", (vehicle_id,))
 if cursor.rowcount == 0:
     self.send_json(404, {"error": "Caminhão não encontrado."})
@@ -252,6 +252,8 @@ self.send_json(200, {"message": "Caminhão removido."})</code></pre></div>
   </script>
 </body>
 </html>
+
+
 
 
 

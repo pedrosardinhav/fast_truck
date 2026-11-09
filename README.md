@@ -9,7 +9,7 @@ Módulo funcional da FasTruck para cadastro e gestão de caminhões. O projeto u
 3. Inicie o servidor:
 
    ```powershell
-   python backend/app.py
+   python src/backend/app.py
    ```
 
 4. Acesse <http://127.0.0.1:8000> no navegador.
@@ -20,7 +20,7 @@ Módulo funcional da FasTruck para cadastro e gestão de caminhões. O projeto u
 Em outro terminal, também na raiz do projeto, inicie o servidor da apresentação:
 
 ```powershell
-python -m http.server 8001 --bind 127.0.0.1 --directory apresentacao
+python -m http.server 8001 --bind 127.0.0.1 --directory src/apresentacao
 ```
 
 Abra <http://127.0.0.1:8001>. A apresentação mostra os dados do cadastro, a tabela SQLite, as validações e o fluxo Create, Read, Update e Delete com trechos do código do projeto. Depois vêm as regras de negócio, requisitos, premissas, restrições, riscos e casos de uso.
@@ -42,12 +42,25 @@ Para fazer uma cópia de segurança, pare o servidor e copie o arquivo `data/fas
 - Impede placas duplicadas e valida os campos obrigatórios no servidor.
 - Exibe indicadores do estoque.
 
-## Arquivos
+## Estrutura de pastas
 
-- `backend/app.py` — servidor HTTP em Python, API CRUD e inicialização do SQLite.
-- `frontend/index.html` — interface e estilos responsivos.
-- `frontend/app.js` — comunicação com a API e interações do front-end.
-- `apresentacao/index.html` — apresentação navegável do fluxo CRUD, servida na porta 8001.
-- `docs/REQUISITOS-CADASTRO-VEICULOS.md` — regras de negócio, requisitos, premissas, riscos, restrições e casos de uso.
-- `data/fasttruck.db` — banco SQLite do projeto.
+```text
+fasttruck/
+├── .gitignore
+├── README.md
+├── sql/
+│   └── schema.sql
+├── src/
+│   ├── backend/
+│   │   └── app.py
+│   ├── frontend/
+│   │   ├── index.html
+│   │   └── app.js
+│   └── apresentacao/
+│       └── index.html
+├── docs/
+│   └── REQUISITOS-CADASTRO-VEICULOS.md
+└── data/
+    └── fasttruck.db  (criado localmente; ignorado pelo Git)
+```
 
