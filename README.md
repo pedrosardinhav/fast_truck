@@ -2,13 +2,22 @@
 
 Módulo funcional da FasTruck para cadastro e gestão de caminhões. O projeto usa Python e SQLite no back-end, com HTML, CSS e JavaScript no front-end. Não precisa instalar pacotes Python externos.
 
+## Baixar pelo GitHub
+
+Com o repositório público ou com acesso concedido, clone o projeto e entre na pasta:
+
+```powershell
+git clone https://github.com/pedrosardinhav/fast_truck.git
+cd fast_truck
+```
+
 ## Como iniciar
 
 1. Instale o Python 3.10 ou mais recente.
 2. Abra um terminal nesta pasta.
 3. Inicie o servidor:
 
-   ```powershell
+   ````powershell
    python src/backend/app.py
    ```
 
@@ -19,7 +28,7 @@ Módulo funcional da FasTruck para cadastro e gestão de caminhões. O projeto u
 
 Em outro terminal, também na raiz do projeto, inicie o servidor da apresentação:
 
-```powershell
+````powershell
 python -m http.server 8001 --bind 127.0.0.1 --directory src/apresentacao
 ```
 
@@ -63,4 +72,7 @@ fasttruck/
 └── data/
     └── fasttruck.db  (criado localmente; ignorado pelo Git)
 ```
+
+
+
 
