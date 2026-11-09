@@ -1,0 +1,257 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#142b4a">
+  <title>FasTruck — Fluxo do CRUD</title>
+  <style>
+    :root{--navy:#142b4a;--navy2:#1d3d63;--blue:#8cb4e5;--ink:#15243a;--muted:#69788a;--line:#dce4ed;--paper:#fff;--bg:#f3f6fa;--green:#a9d26a;--red:#d8796c;--gold:#e5bb60}*{box-sizing:border-box}body{margin:0;background:var(--navy);color:white;font:15px/1.5 'Segoe UI',Arial,sans-serif;min-height:100vh}.shell{min-height:100vh;display:grid;grid-template-columns:285px 1fr}.side{padding:34px 24px;background:#10233d;display:flex;flex-direction:column;border-right:1px solid #ffffff14}.brand{font-size:18px;font-weight:800;letter-spacing:-.5px;display:flex;align-items:center;gap:11px}.mark{width:37px;height:37px;border-radius:11px;background:#e7eef7;color:var(--navy);display:grid;place-items:center}.mark svg{width:24px}.brand span:last-child span{color:var(--blue)}.kicker{margin-top:72px;color:#91a8c3;text-transform:uppercase;letter-spacing:1.7px;font-size:10px;font-weight:700}.side h1{font-size:30px;line-height:1.12;letter-spacing:-1.2px;margin:12px 0 13px}.side p{color:#b6c3d1;font-size:13px;margin:0;line-height:1.65}.step-nav{display:grid;gap:16px;margin-top:30px}.nav-group{display:grid;gap:6px}.nav-group-title{color:#7993b0;text-transform:uppercase;letter-spacing:1.2px;font-size:9px;font-weight:700;padding:0 11px 2px}.step-link{border:1px solid transparent;background:none;text-align:left;color:#aab9c9;padding:10px 11px;border-radius:10px;display:flex;align-items:center;gap:11px;cursor:pointer;font:inherit;font-size:12px;transition:.18s}.step-link:hover{background:#ffffff0b;color:white}.step-link.active{color:white;background:#ffffff12;border-color:#ffffff18}.step-num{width:25px;height:25px;border:1px solid #ffffff25;border-radius:8px;display:grid;place-items:center;font-size:10px;font-weight:700}.step-link.active .step-num{background:var(--blue);border-color:var(--blue);color:var(--navy)}.side-bottom{margin-top:auto;padding-top:24px;color:#8fa1b5;font-size:11px;line-height:1.6}.side-bottom b{color:#d7e1eb}.main{padding:42px clamp(24px,5vw,72px) 26px;display:flex;flex-direction:column;min-width:0}.topline{display:flex;justify-content:space-between;align-items:center;color:#9fb0c2;text-transform:uppercase;letter-spacing:1.3px;font-size:10px;font-weight:700}.live{color:#c8d2de;text-transform:none;letter-spacing:0;font-weight:500;font-size:11px}.live i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:7px}.slide-wrap{flex:1;display:grid;align-items:center;max-width:1020px;width:100%;margin:18px auto}.slide{display:none;animation:appear .3s ease}.slide.active{display:block}@keyframes appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.slide-label{color:#9cb9db;text-transform:uppercase;letter-spacing:1.6px;font-size:10px;font-weight:700}.slide h2{font-size:clamp(34px,5vw,58px);line-height:1.02;letter-spacing:-2.7px;max-width:780px;margin:14px 0 15px}.slide h2 span{color:#9fc1e8}.lead{max-width:650px;color:#c1cbd7;font-size:16px;line-height:1.65;margin:0 0 27px}.flow{display:grid;grid-template-columns:1fr 45px 1fr 45px 1fr;align-items:stretch;margin-top:38px;max-width:880px}.flow.summary-flow{grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr) 26px minmax(0,1fr) 26px minmax(0,1fr)}.flow-card{background:#fff;border:1px solid #ffffff;border-radius:15px;color:var(--ink);padding:20px;min-height:143px}.flow-card small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700}.flow-card b{display:block;font-size:16px;margin:12px 0 5px}.flow-card span{display:block;color:#6a7787;font-size:12px;line-height:1.5}.flow-icon{height:33px;width:33px;background:#eaf0f7;color:var(--navy2);border-radius:10px;display:grid;place-items:center;font-size:16px;font-weight:800}.arrow{display:grid;place-items:center;color:#94aed0;font-size:23px}.endpoint{margin-top:17px;background:#0e2038;border:1px solid #ffffff18;border-radius:10px;padding:11px 14px;color:#d8e3ef;font:12px Consolas,monospace;display:inline-flex;gap:12px;align-items:center}.method{color:#a8d37a;font-weight:700}.method.put{color:#eac66c}.method.delete{color:#ef9389}.method.get{color:#8fc0f2}.endpoint code{color:white}.content-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(235px,.7fr);gap:17px;max-width:920px;margin-top:29px}.visual{background:#fff;border-radius:16px;padding:22px;color:var(--ink)}.visual-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:13px;font-size:12px;font-weight:700}.visual-head em{font-style:normal;color:#738296;font-weight:500;font-size:10px}.mini-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.mini-field{height:47px;border:1px solid #e3e9ef;border-radius:8px;padding:7px 10px;color:#718095;font-size:9px}.mini-field b{display:block;color:#293a50;font-size:11px;margin-top:3px}.mini-field.full{grid-column:1/-1}.fake-button{display:inline-block;margin-top:13px;background:var(--navy);color:white;border-radius:8px;padding:9px 13px;font-size:10px;font-weight:700}.steps{border:1px solid #ffffff20;border-radius:15px;padding:21px;background:#ffffff08}.steps h3{font-size:13px;margin:0 0 14px}.steps ol{list-style:none;margin:0;padding:0;display:grid;gap:12px}.steps li{display:flex;gap:10px;color:#c0ccda;font-size:11px;line-height:1.45}.steps li i{font-style:normal;flex:0 0 21px;height:21px;border-radius:7px;background:#ffffff12;color:#c4d8ef;display:grid;place-items:center;font-size:9px;font-weight:700}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.chip{border:1px solid #ffffff24;border-radius:30px;padding:6px 10px;color:#cfdae6;font-size:10px}.read-table{width:100%;border-collapse:collapse;margin-top:15px;font-size:10px}.db-table-scroll{overflow-x:auto;margin-top:14px}.read-table.db-preview{margin-top:0;min-width:610px}.read-table.db-preview th{white-space:nowrap}.read-table th{text-align:left;color:#7a899a;text-transform:uppercase;letter-spacing:.6px;font-size:8px;padding:8px 7px;border-bottom:1px solid var(--line)}.read-table td{padding:10px 7px;border-bottom:1px solid #eef1f5;color:#35465b}.read-table td:last-child{font-weight:700}.badge{border-radius:20px;padding:4px 7px;font-size:8px;font-weight:700;background:#eef5df;color:#668640}.badge.gold{background:#fff4dc;color:#a77d2a}.badge.gray{background:#edf0f3;color:#788696}.record{border:1px solid #e2e8ef;border-radius:10px;padding:13px;margin-top:16px;background:#fbfcfe}.record-top{display:flex;justify-content:space-between;color:#263a54;font-size:12px;font-weight:700}.record-top em{font-style:normal;color:#7c8ba0;font-size:9px;font-weight:500}.record p{margin:11px 0 0;padding-top:10px;border-top:1px solid #e7edf3;color:#758396;font-size:10px}.db-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:15px}.db-cell{padding:8px;border-radius:7px;background:#f3f6f9;color:#718092;font:9px Consolas,monospace}.db-cell b{display:block;color:#30445d;margin-top:4px;font-size:10px}.result{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:#eaf3df;color:#4e6c2e;font-size:11px;font-weight:600;margin-top:14px}.result.red{background:#fff0ed;color:#974b43}.result.blue{background:#eaf0f7;color:#2c527f}.result i{font-style:normal;font-size:16px}.bottom{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid #ffffff1b;padding-top:17px}.progress{display:flex;align-items:center;gap:10px;color:#aab9c9;font-size:11px;min-width:115px}.bar{height:4px;width:100px;background:#ffffff26;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:#9fc1e8;transition:width .25s}.controls{display:flex;align-items:center;gap:9px}.controls button{border:1px solid #ffffff35;background:transparent;color:white;border-radius:9px;height:37px;padding:0 14px;font:600 11px 'Segoe UI',Arial,sans-serif;cursor:pointer}.controls button:hover{background:#ffffff12}.controls button:disabled{opacity:.35;cursor:default}.controls .next{background:#eaf0f7;color:var(--navy);border-color:#eaf0f7}.controls .next:hover{background:#d7e5f4}.dots{display:flex;gap:6px;margin:0 6px}.dot{width:7px;height:7px;border:0;border-radius:9px;background:#ffffff43;padding:0;cursor:pointer}.dot.active{width:19px;background:#a9c8ed}.detail-table-wrap{max-height:min(52vh,520px);overflow:auto;background:#fff;border-radius:14px;padding:4px 18px;color:var(--ink);margin-top:22px}.detail-table{width:100%;border-collapse:collapse;font-size:11px}.detail-table th{position:sticky;top:0;background:#f3f6fa;text-align:left;padding:10px 8px;color:#728196;text-transform:uppercase;letter-spacing:.7px;font-size:8px;z-index:1}.detail-table td{padding:9px 8px;border-top:1px solid #e9eef3;color:#46586f;vertical-align:top}.detail-table td:first-child{font-weight:700;color:#1d3d63;white-space:nowrap}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:24px}.info-card{background:#fff;border-radius:15px;color:var(--ink);padding:19px}.info-card h3{font-size:12px;margin:0 0 10px}.info-card ul{margin:0;padding-left:17px;color:#617186;font-size:11px;line-height:1.8}.uc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:22px}.uc-card{background:#fff;border-radius:14px;padding:17px;color:var(--ink)}.uc-card h3{font-size:12px;margin:0 0 8px}.uc-card p{font-size:10px;color:#607187;margin:0;line-height:1.6}.uc-card p b{color:#294d77}@media(max-width:900px){.shell{grid-template-columns:220px 1fr}.side{padding:27px 17px}.side h1{font-size:25px}.main{padding:30px 24px 22px}.flow{grid-template-columns:1fr 28px 1fr 28px 1fr}.flow.summary-flow{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.summary-flow .arrow{display:none}.flow-card{padding:15px}.content-grid{grid-template-columns:1fr}.steps{display:none}}@media(max-width:650px){.shell{display:block}.side{padding:20px 19px 14px;border-right:0;border-bottom:1px solid #ffffff18}.kicker{margin-top:18px}.side h1{font-size:23px;margin:7px 0}.side p{font-size:11px}.step-nav{display:flex;overflow:auto;margin-top:16px;padding-bottom:2px;gap:0}.nav-group{display:flex;flex:0 0 auto;gap:4px}.nav-group-title{display:none}.nav-group+.nav-group{border-left:1px solid #ffffff2b;padding-left:8px;margin-left:4px}.step-link{flex:0 0 auto;padding:7px 8px}.step-link span:last-child{display:none}.step-num{height:27px;width:27px}.side-bottom{display:none}.main{padding:21px 18px 17px;min-height:65vh}.topline{font-size:9px}.slide h2{font-size:39px;letter-spacing:-1.7px}.lead{font-size:14px}.flow{grid-template-columns:1fr;gap:7px;margin-top:22px}.arrow{height:15px;transform:rotate(90deg)}.flow-card{min-height:auto;padding:14px;display:grid;grid-template-columns:34px 1fr;column-gap:10px}.flow-icon{grid-row:span 2}.flow-card small,.flow-card b,.flow-card span{grid-column:2}.flow-card b{margin:1px 0 3px}.flow-card small{grid-row:1}.content-grid{margin-top:19px}.info-grid,.uc-grid{grid-template-columns:1fr}.info-card{padding:16px}.uc-card{padding:15px}.detail-table-wrap{max-height:none;padding:3px 12px}.detail-table{font-size:10px}.visual{padding:16px}.mini-form{grid-template-columns:1fr 1fr}.bottom{padding-top:13px}.progress{min-width:unset}.bar{width:54px}.controls button{height:34px;padding:0 10px}.dots{gap:5px;margin:0 2px}}
+    .side{position:sticky;top:0;height:100vh;overflow-y:auto}.kicker{margin-top:28px}.step-nav{gap:10px;margin-top:20px}.step-link{padding:7px 9px}.example-panel{max-width:920px;margin-top:18px;border:1px solid #ffffff25;border-radius:14px;background:#0c1d33;overflow:hidden}.example-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 15px;border-bottom:1px solid #ffffff1b;color:#e3edfa;font-size:11px;font-weight:700}.example-head span:last-child{color:#9db2cb;font:10px Consolas,monospace;font-weight:400}.example-panel pre{margin:0;padding:14px 16px;color:#dce8f6;font:11px/1.55 Consolas,'Courier New',monospace;white-space:pre;overflow-x:auto}.example-note{color:#aabdd2;font-size:11px;line-height:1.5;margin:10px 0 0}.field-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:920px;margin-top:20px}.field-card{background:#fff;border-radius:12px;color:#263a54;padding:13px 15px}.field-card b{display:block;font-size:12px}.field-card span{display:block;color:#697c92;font-size:10px;margin-top:5px}.split-code{display:grid;grid-template-columns:1fr 1fr;gap:13px;max-width:920px}.split-code .example-panel{min-width:0}.split-code .example-panel pre{font-size:10px}.compact-slide h2{font-size:clamp(30px,4.1vw,46px)}.compact-slide .lead{margin-bottom:16px}@media(max-width:900px){.field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.split-code{grid-template-columns:1fr}}@media(max-width:650px){.side{position:static;height:auto;overflow:visible}.kicker{margin-top:18px}.step-nav{margin-top:16px}.field-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.field-card{padding:11px}.example-panel pre{font-size:10px}.example-head{padding:9px 12px}}
+    @media(max-width:650px){.dots{display:none}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand"><span class="mark"><svg viewBox="0 0 36 27" fill="none"><path d="M2 6h19v14H2zM21 11h7l6 6v3H21z" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><circle cx="9" cy="22" r="3" fill="currentColor"/><circle cx="28" cy="22" r="3" fill="currentColor"/></svg></span><span>Fas<span>Truck</span></span></div>
+      <div class="kicker">Apresentação · 01</div>
+      <h1>O caminho de cada caminhão.</h1>
+      <p>Uma visão rápida de como o cadastro passa pela tela, pela API Python e chega ao banco SQLite.</p>
+      <nav class="step-nav" aria-label="Slides">
+        <div class="nav-group">
+          <div class="nav-group-title">Fluxo do CRUD</div>
+          <button class="step-link active" data-slide="0"><i class="step-num">01</i><span>Visão geral</span></button>
+          <button class="step-link" data-slide="1"><i class="step-num">02</i><span>Dados do caminhão</span></button>
+          <button class="step-link" data-slide="2"><i class="step-num">03</i><span>Banco SQLite</span></button>
+          <button class="step-link" data-slide="3"><i class="step-num">04</i><span>Validações</span></button>
+          <button class="step-link" data-slide="4"><i class="step-num">05</i><span>Create · Cadastrar</span></button>
+          <button class="step-link" data-slide="5"><i class="step-num">06</i><span>Read · Consultar</span></button>
+          <button class="step-link" data-slide="6"><i class="step-num">07</i><span>Update · Editar</span></button>
+          <button class="step-link" data-slide="7"><i class="step-num">08</i><span>Delete · Excluir</span></button>
+          <button class="step-link" data-slide="8"><i class="step-num">09</i><span>Resumo</span></button>
+        </div>
+        <div class="nav-group">
+          <div class="nav-group-title">Levantamento e requisitos</div>
+          <button class="step-link" data-slide="9"><i class="step-num">10</i><span>Regras de negócio</span></button>
+          <button class="step-link" data-slide="10"><i class="step-num">11</i><span>Requisitos funcionais</span></button>
+          <button class="step-link" data-slide="11"><i class="step-num">12</i><span>Requisitos não funcionais</span></button>
+          <button class="step-link" data-slide="12"><i class="step-num">13</i><span>Premissas e restrições</span></button>
+          <button class="step-link" data-slide="13"><i class="step-num">14</i><span>Riscos</span></button>
+          <button class="step-link" data-slide="14"><i class="step-num">15</i><span>Casos de uso</span></button>
+        </div>
+      </nav>
+      <div class="side-bottom"><b>FasTruck · CRUD de veículos</b><br>Gestão de veículos FasTruck</div>
+    </aside>
+    <main class="main">
+      <div class="topline"><span id="sectionLabel">Visão geral</span><span class="live"><i></i>HTML independente · sem dependências</span></div>
+      <div class="slide-wrap">
+        <section class="slide active" data-title="Visão geral">
+          <div class="slide-label">O fluxo em uma tela</div><h2>Do formulário ao <span>SQLite.</span></h2>
+          <p class="lead">A interface coleta os dados, a API Python valida o pedido e o SQLite guarda o registro. Os próximos slides mostram trechos usados pelo FasTruck em cada etapa.</p>
+          <div class="flow">
+            <article class="flow-card"><i class="flow-icon">01</i><small>Front-end</small><b>HTML · CSS · JS</b><span>Formulário, lista, pesquisa e ações do operador.</span></article><div class="arrow">→</div>
+            <article class="flow-card"><i class="flow-icon">02</i><small>Back-end</small><b>Python · API REST</b><span>Recebe pedidos HTTP e valida os dados do caminhão.</span></article><div class="arrow">→</div>
+            <article class="flow-card"><i class="flow-icon">03</i><small>Banco de dados</small><b>SQLite</b><span>Grava e recupera veículos no arquivo local.</span></article>
+          </div>
+          <div class="chips"><span class="chip">CREATE · criar</span><span class="chip">READ · consultar</span><span class="chip">UPDATE · editar</span><span class="chip">DELETE · excluir</span></div>
+        </section>
+        <section class="slide compact-slide" data-title="Dados do caminhão">
+          <div class="slide-label">Dados enviados pelo formulário</div><h2>O que vai em <span>cada cadastro</span></h2>
+          <p class="lead">O formulário reúne os dados do caminhão e o JavaScript prepara os valores antes de enviar o JSON à API.</p>
+          <div class="field-grid">
+            <div class="field-card"><b>Identificação</b><span>Placa, marca, modelo e ano</span></div>
+            <div class="field-card"><b>Características</b><span>Cor, carroceria, tração e combustível</span></div>
+            <div class="field-card"><b>Condição</b><span>Quilometragem e status</span></div>
+            <div class="field-card"><b>Anúncio</b><span>Preço em reais</span></div>
+            <div class="field-card"><b>Personalização</b><span>Sim ou não, com observações</span></div>
+            <div class="field-card"><b>Identificador</b><span>ID gerado pelo servidor ao cadastrar</span></div>
+          </div>
+          <div class="example-panel"><div class="example-head"><span>Preparação dos dados</span><span>frontend/app.js</span></div><pre><code>const data = Object.fromEntries(new FormData(form).entries());
+data.plate = formatPlate(data.plate);
+data.price = Number(data.price);
+data.km = Number(data.km || 0);</code></pre></div>
+        </section>
+        <section class="slide compact-slide" data-title="Banco SQLite">
+          <div class="slide-label">Persistência dos veículos</div><h2>Uma tabela no <span>SQLite</span></h2>
+          <p class="lead">A API cria a tabela <code>vehicles</code> no arquivo <code>data/fasttruck.db</code>. Cada cadastro ocupa uma linha.</p>
+          <div class="example-panel"><div class="example-head"><span>Colunas e restrições da tabela</span><span>backend/app.py · initialize_database()</span></div><pre><code>CREATE TABLE IF NOT EXISTS vehicles (
+    id TEXT PRIMARY KEY,
+    plate TEXT NOT NULL UNIQUE,
+    brand TEXT NOT NULL,
+    model TEXT NOT NULL,
+    year TEXT NOT NULL,
+    color TEXT NOT NULL,
+    body TEXT NOT NULL DEFAULT '',
+    axles TEXT NOT NULL DEFAULT '',
+    fuel TEXT NOT NULL DEFAULT '',
+    km INTEGER NOT NULL DEFAULT 0 CHECK (km &gt;= 0),
+    price REAL NOT NULL CHECK (price &gt;= 0),
+    customized TEXT NOT NULL DEFAULT 'sim' CHECK (customized IN ('sim', 'nao')),
+    notes TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL CHECK (status IN ('Disponível', 'Reservado', 'Vendido'))
+)</code></pre></div>
+          <p class="example-note">A placa é única. O banco rejeita preço e quilometragem negativos e limita os valores de status.</p>
+        </section>
+        <section class="slide compact-slide" data-title="Validações">
+          <div class="slide-label">Regras antes de gravar</div><h2>A API confere <span>os dados</span></h2>
+          <p class="lead">O Python normaliza a placa, exige campos essenciais e rejeita valores inválidos antes do INSERT ou UPDATE.</p>
+          <div class="split-code">
+            <div class="example-panel"><div class="example-head"><span>Placa</span><span>backend/app.py · normalize_plate()</span></div><pre><code>plate = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+if not PLATE_PATTERN.fullmatch(plate):
+    raise ValueError("Informe uma placa válida no padrão antigo ou Mercosul.")
+return f"{plate[:3]}-{plate[3:]}"</code></pre></div>
+            <div class="example-panel"><div class="example-head"><span>Preço e quilometragem</span><span>backend/app.py · validate_vehicle()</span></div><pre><code>price = float(payload.get("price", ""))
+km = int(payload.get("km") or 0)
+if not math.isfinite(price) or price &lt; 0 or km &lt; 0:
+    raise ValueError("Valor e quilometragem devem ser iguais ou maiores que zero.")</code></pre></div>
+          </div>
+          <p class="example-note">Os trechos mostram as condições principais. A função também valida status, campos obrigatórios e personalização.</p>
+        </section>
+        <section class="slide" data-title="Create · Cadastrar">
+          <div class="slide-label">01 / Create</div><h2>Um novo caminhão <span>entra no estoque.</span></h2>
+          <p class="lead">O operador preenche os dados. A API verifica os campos obrigatórios, o formato da placa e se ela já existe antes de salvar.</p>
+          <div class="endpoint"><span class="method">POST</span><code>/api/vehicles</code><span>→</span><span>201 Criado</span></div>
+          <div class="content-grid"><div class="visual"><div class="visual-head"><span>Novo caminhão</span><em>Exemplo do formulário</em></div><div class="mini-form"><div class="mini-field">Placa *<b>FTK-1A26</b></div><div class="mini-field">Status *<b>Disponível</b></div><div class="mini-field">Marca *<b>Iveco</b></div><div class="mini-field">Modelo *<b>S-Way 480</b></div><div class="mini-field">Ano fab. / modelo *<b>2022 / 2023</b></div><div class="mini-field">Valor anunciado *<b>R$ 625.000</b></div><div class="mini-field full">Personalizações<b>Defletor de ar · rodas de alumínio</b></div></div><span class="fake-button">Cadastrar caminhão →</span></div>
+            <aside class="steps"><h3>O que acontece?</h3><ol><li><i>1</i>O navegador envia JSON para a API.</li><li><i>2</i>Python valida e normaliza a placa.</li><li><i>3</i>SQLite grava o veículo com um ID.</li><li><i>4</i>A lista e os indicadores são atualizados.</li></ol></aside></div>
+          <div class="example-panel"><div class="example-head"><span>Gravação do cadastro</span><span>backend/app.py · do_POST()</span></div><pre><code>vehicle = validate_vehicle(self.read_json())
+vehicle["id"] = str(uuid.uuid4())
+with connect_db() as conn:
+    conn.execute("""INSERT INTO vehicles
+        (id, plate, brand, model, year, color, body, axles, fuel, km,
+         price, customized, notes, status)
+        VALUES (:id, :plate, :brand, :model, :year, :color, :body,
+                :axles, :fuel, :km, :price, :customized, :notes, :status)""", vehicle)</code></pre></div>
+        </section>
+        <section class="slide" data-title="Read · Consultar">
+          <div class="slide-label">02 / Read</div><h2>O estoque fica <span>visível e pesquisável.</span></h2>
+          <p class="lead">Ao abrir a tela, o navegador pede a lista ao servidor. A busca e o filtro ajudam a localizar caminhões; os indicadores resumem o estoque inteiro.</p>
+          <div class="endpoint"><span class="method get">GET</span><code>/api/vehicles</code><span>→</span><span>200 OK · lista JSON</span></div>
+          <div class="content-grid"><div class="visual"><div class="visual-head"><span>Caminhões cadastrados</span><em>Exemplo da lista</em></div><table class="read-table"><thead><tr><th>Veículo</th><th>Placa</th><th>Status</th><th>Valor</th></tr></thead><tbody><tr><td>Volvo FH 540</td><td>RTA-4C27</td><td><span class="badge">Disponível</span></td><td>R$ 689.900</td></tr><tr><td>Scania R 450</td><td>BZX-8H41</td><td><span class="badge gold">Reservado</span></td><td>R$ 572.000</td></tr><tr><td>Mercedes Actros 2651</td><td>GKM-2D96</td><td><span class="badge">Disponível</span></td><td>R$ 745.000</td></tr></tbody></table></div>
+            <aside class="steps"><h3>O painel resume</h3><ol><li><i>↗</i>Total de veículos cadastrados</li><li><i>✓</i>Quantos estão disponíveis</li><li><i>✦</i>Quantos têm personalização</li><li><i>R$</i>Soma dos valores anunciados</li></ol><div class="chips"><span class="chip">Busca por placa</span><span class="chip">Filtro por status</span></div></aside></div>
+          <div class="example-panel"><div class="example-head"><span>Consulta do estoque</span><span>backend/app.py · do_GET()</span></div><pre><code>vehicles = [dict(row) for row in conn.execute(
+    "SELECT * FROM vehicles ORDER BY rowid DESC"
+)]
+self.send_json(200, vehicles)</code></pre></div>
+        </section>
+        <section class="slide" data-title="Update · Editar">
+          <div class="slide-label">03 / Update</div><h2>Editar mantém o <span>mesmo caminhão.</span></h2>
+          <p class="lead">A ação de editar carrega o registro no formulário. Ao salvar, a API valida novamente os dados e atualiza a linha existente, preservando seu identificador.</p>
+          <div class="endpoint"><span class="method put">PUT</span><code>/api/vehicles/{id}</code><span>→</span><span>200 Atualizado</span></div>
+          <div class="content-grid"><div class="visual"><div class="visual-head"><span>Editar caminhão · Iveco S-Way</span><em>ID preservado</em></div><div class="record"><div class="record-top"><span>HJK-5A14 <em>antes</em></span><span>R$ 625.000</span></div><p>Modelo: S-Way 480 · Personalização: defletor + rodas</p></div><div style="text-align:center;color:#8a9bb0;padding:3px">↓ alterar e salvar</div><div class="record"><div class="record-top"><span>HJK-5A14 <em>depois</em></span><span>R$ 639.000</span></div><p>Modelo: S-Way 480 · Personalização: defletor + rodas + cabine premium</p></div></div>
+            <aside class="steps"><h3>Regras na edição</h3><ol><li><i>1</i>O formulário carrega os valores atuais.</li><li><i>2</i>O operador altera preço ou características.</li><li><i>3</i>A placa continua única entre os veículos.</li><li><i>4</i>A lista reflete os dados atualizados.</li></ol></aside></div>
+          <div class="example-panel"><div class="example-head"><span>Atualização da mesma linha</span><span>backend/app.py · do_PUT()</span></div><pre><code>vehicle = validate_vehicle(self.read_json())
+vehicle["id"] = vehicle_id
+cursor = conn.execute(
+    """UPDATE vehicles SET
+    plate=:plate, brand=:brand, model=:model, year=:year,
+    color=:color, body=:body, axles=:axles, fuel=:fuel,
+    km=:km, price=:price, customized=:customized, notes=:notes,
+    status=:status WHERE id=:id""", vehicle)</code></pre></div>
+        </section>
+        <section class="slide" data-title="Delete · Excluir">
+          <div class="slide-label">04 / Delete</div><h2>Excluir pede <span>confirmação.</span></h2>
+          <p class="lead">O operador escolhe excluir, confirma a ação e a API remove o registro. Se cancelar, o caminhão permanece no estoque.</p>
+          <div class="endpoint"><span class="method delete">DELETE</span><code>/api/vehicles/{id}</code><span>→</span><span>200 Removido</span></div>
+          <div class="content-grid"><div class="visual"><div class="visual-head"><span>Confirmação de exclusão</span><em>Proteção contra clique acidental</em></div><div class="record"><div class="record-top"><span>Excluir Volvo VM 330?</span><em>MNO-7D82</em></div><p>O caminhão será removido do banco SQLite local.</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><span class="fake-button" style="margin:0;background:#f0f3f7;color:#52647a">Manter veículo</span><span class="fake-button" style="margin:0;background:#b45b52">Excluir</span></div></div></div>
+            <aside class="steps"><h3>Depois da confirmação</h3><ol><li><i>1</i>Python apaga pelo ID do registro.</li><li><i>2</i>A lista remove o caminhão.</li><li><i>3</i>Os totais do painel são recalculados.</li><li><i>×</i>Cancelar fecha sem mudar o banco.</li></ol></aside></div>
+          <div class="example-panel"><div class="example-head"><span>Exclusão após confirmar na tela</span><span>backend/app.py · do_DELETE()</span></div><pre><code>with connect_db() as conn:
+    cursor = conn.execute("DELETE FROM vehicles WHERE id = ?", (vehicle_id,))
+if cursor.rowcount == 0:
+    self.send_json(404, {"error": "Caminhão não encontrado."})
+    return
+self.send_json(200, {"message": "Caminhão removido."})</code></pre></div>
+        </section>
+        <section class="slide" data-title="Resumo">
+          <div class="slide-label">Resumo do percurso</div><h2>Quatro ações. <span>Um estoque organizado.</span></h2>
+          <p class="lead">O CRUD cobre o ciclo básico de vida do cadastro de um veículo, com validação no servidor e persistência local em SQLite.</p>
+          <div class="flow summary-flow"><article class="flow-card"><i class="flow-icon" style="background:#eaf3df;color:#55782d">C</i><small>Create</small><b>Cadastrar</b><span>POST cria um veículo.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#eaf0f7;color:#315b88">R</i><small>Read</small><b>Consultar</b><span>GET apresenta o estoque.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#fff4dc;color:#987126">U</i><small>Update</small><b>Editar</b><span>PUT altera os dados.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#fff0ed;color:#a34e45">D</i><small>Delete</small><b>Excluir</b><span>DELETE remove o veículo.</span></article></div>
+          <div class="content-grid"><div class="visual"><div class="visual-head"><span>Tabela vehicles</span><em>Alguns registros do SQLite</em></div><div class="db-table-scroll"><table class="read-table db-preview"><thead><tr><th>Placa</th><th>Marca / modelo</th><th>Ano</th><th>Status</th><th>Preço</th></tr></thead><tbody><tr><td>RTA-4C27</td><td>Volvo FH 540</td><td>2022 / 2023</td><td><span class="badge">Disponível</span></td><td>R$ 689.900</td></tr><tr><td>BZX-8H41</td><td>Scania R 450</td><td>2021 / 2022</td><td><span class="badge gold">Reservado</span></td><td>R$ 572.000</td></tr><tr><td>HJK-5A14</td><td>Iveco S-Way 480</td><td>2022 / 2023</td><td><span class="badge">Disponível</span></td><td>R$ 625.000</td></tr></tbody></table></div></div><aside class="steps"><h3>Operações disponíveis</h3><ol><li><i>1</i>Abra o painel e cadastre um caminhão.</li><li><i>2</i>Pesquise e filtre os veículos.</li><li><i>3</i>Edite uma personalização.</li><li><i>4</i>Exclua com confirmação.</li></ol></aside></div>
+        </section>
+        <section class="slide" data-title="Regras de negócio">
+          <div class="slide-label">Regras de negócio · como o cadastro se comporta</div><h2>Dados confiáveis <span>desde a entrada.</span></h2>
+          <p class="lead">As regras centrais são aplicadas pela API Python antes de gravar ou alterar um caminhão.</p>
+          <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>ID</th><th>Regra</th></tr></thead><tbody>
+            <tr><td>RN01</td><td>Placa obrigatória nos padrões antigo ou Mercosul; letras são convertidas para maiúsculas.</td></tr>
+            <tr><td>RN02</td><td>Placa única no banco, normalizada sem espaços ou hífen para comparação.</td></tr>
+            <tr><td>RN03</td><td>Marca, modelo, ano, cor, status e valor anunciado são obrigatórios.</td></tr>
+            <tr><td>RN04</td><td>Status permitido: Disponível, Reservado ou Vendido.</td></tr>
+            <tr><td>RN05</td><td>Quilometragem e valor não podem ser negativos.</td></tr>
+            <tr><td>RN06</td><td>Personalização é “sim” ou “não”; observações são opcionais.</td></tr>
+            <tr><td>RN07</td><td>Editar mantém o ID e revalida os dados e a unicidade da placa.</td></tr>
+            <tr><td>RN08</td><td>Excluir só acontece depois da confirmação na interface.</td></tr>
+            <tr><td>RN09</td><td>O indicador de valor soma todos os veículos, qualquer que seja o status.</td></tr>
+            <tr><td>RN10</td><td>Os dados de exemplo são inseridos uma vez; excluí-los não os recria.</td></tr>
+          </tbody></table></div>
+        </section>
+        <section class="slide" data-title="Requisitos funcionais">
+          <div class="slide-label">Requisitos · o que o sistema faz</div><h2>Funcionalidades do <span>módulo.</span></h2>
+          <p class="lead">Os requisitos funcionais descrevem as ações disponíveis para o operador e o que a API oferece ao front-end.</p>
+          <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>ID</th><th>Requisito funcional</th></tr></thead><tbody>
+            <tr><td>RF01</td><td>Cadastrar veículo com placa, marca, modelo, ano, cor, status e preço.</td></tr>
+            <tr><td>RF02</td><td>Registrar carroceria, tração, combustível, quilometragem e personalização.</td></tr>
+            <tr><td>RF03</td><td>Listar veículos com seus principais dados e status.</td></tr>
+            <tr><td>RF04</td><td>Editar os dados de um veículo existente.</td></tr>
+            <tr><td>RF05</td><td>Confirmar antes de excluir um caminhão.</td></tr>
+            <tr><td>RF06</td><td>Pesquisar por placa, marca ou modelo e filtrar pelo status.</td></tr>
+            <tr><td>RF07</td><td>Mostrar total, disponíveis, personalizados e valor anunciado somado.</td></tr>
+            <tr><td>RF08</td><td>Persistir e recuperar cadastros no banco SQLite pela API Python.</td></tr>
+            <tr><td>RF09</td><td>Exibir mensagens de sucesso ou erro nas operações do CRUD.</td></tr>
+            <tr><td>RF10</td><td>Oferecer endpoints HTTP para listar, criar, atualizar e excluir veículos.</td></tr>
+          </tbody></table></div>
+        </section>
+        <section class="slide" data-title="Requisitos não funcionais">
+          <div class="slide-label">Requisitos · como o sistema deve funcionar</div><h2>Qualidade e <span>limites técnicos.</span></h2>
+          <p class="lead">Os requisitos não funcionais orientam a experiência, a persistência e a forma de execução local.</p>
+          <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>ID</th><th>Requisito não funcional</th></tr></thead><tbody>
+            <tr><td>RNF01</td><td>Interface responsiva, utilizável em desktop e telas estreitas.</td></tr>
+            <tr><td>RNF02</td><td>Campos rotulados, foco visível e mensagens acessíveis.</td></tr>
+            <tr><td>RNF03</td><td>Texto do usuário escapado antes de aparecer na lista.</td></tr>
+            <tr><td>RNF04</td><td>Back-end usa a biblioteca padrão do Python, sem dependências externas.</td></tr>
+            <tr><td>RNF05</td><td>SQLite preserva os dados entre reinicializações; backup é manual.</td></tr>
+            <tr><td>RNF06</td><td>Validações importantes ocorrem no servidor, além do navegador.</td></tr>
+            <tr><td>RNF07</td><td>Interface e API são servidas na mesma origem local, porta 8000.</td></tr>
+          </tbody></table></div>
+        </section>
+        <section class="slide" data-title="Premissas e restrições">
+          <div class="slide-label">Contexto de uso</div><h2>O que assumimos <span>e o que fica fora.</span></h2>
+          <p class="lead">O módulo FasTruck permite cadastrar e gerenciar veículos, com dados persistidos no banco SQLite.</p>
+          <div class="info-grid">
+            <article class="info-card"><h3>Premissas</h3><ul><li>Uma pessoa usa o sistema no computador local.</li><li>O painel é aberto pelo servidor Python, não como arquivo HTML.</li><li>O banco é `data/fasttruck.db`.</li><li>O banco contém 13 registros iniciais, que podem ser editados ou excluídos.</li><li>Personalizações são declaradas pelo operador, sem verificação externa.</li></ul></article>
+            <article class="info-card"><h3>Restrições</h3><ul><li>Sem login, perfis ou controle de acesso.</li><li>Sem backup automático ou sincronização entre dispositivos.</li><li>Sem consulta oficial de placa ou documentação.</li><li>Sem fotos, catálogo público, carrinho ou pagamentos.</li><li>Servidor de desenvolvimento local; não configurado para produção.</li></ul></article>
+          </div>
+        </section>
+        <section class="slide" data-title="Riscos">
+          <div class="slide-label">Riscos e respostas</div><h2>Conhecer os limites <span>do módulo.</span></h2>
+          <p class="lead">Cada risco tem uma resposta dentro do escopo atual ou um limite claramente comunicado.</p>
+          <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Risco</th><th>Resposta nesta etapa</th></tr></thead><tbody>
+            <tr><td>Perder ou danificar o arquivo SQLite</td><td>Fazer cópias periódicas de `data/fasttruck.db`; não há backup automático.</td></tr>
+            <tr><td>Placa repetida com escrita diferente</td><td>Normalizar e validar a placa; banco também impede duplicidade.</td></tr>
+            <tr><td>Servidor parado ou banco indisponível</td><td>Interface informa falha de conexão e orienta a iniciar o Python.</td></tr>
+            <tr><td>Características ou personalização incorretas</td><td>Informações são declaradas pelo operador e não verificadas.</td></tr>
+            <tr><td>Expor o servidor local na rede</td><td>Executar em `127.0.0.1`; o servidor está configurado para uso local.</td></tr>
+          </tbody></table></div>
+        </section>
+        <section class="slide" data-title="Casos de uso">
+          <div class="slide-label">Casos de uso · operador do estoque</div><h2>Quatro jornadas <span>do cadastro.</span></h2>
+          <p class="lead">Os casos de uso descrevem o objetivo do operador, o caminho principal e as respostas a situações comuns.</p>
+          <div class="uc-grid">
+            <article class="uc-card"><h3>UC01 · Cadastrar caminhão</h3><p><b>Pré:</b> servidor iniciado e banco acessível.<br><b>Fluxo:</b> preencher dados → enviar → API valida → SQLite grava → lista e indicadores atualizam.<br><b>Alternativas:</b> placa inválida ou repetida e falha de gravação mostram erro.</p></article>
+            <article class="uc-card"><h3>UC02 · Consultar estoque</h3><p><b>Fluxo:</b> abrir painel → carregar lista do banco → pesquisar placa, marca ou modelo → filtrar status.<br><b>Resultado:</b> lista filtrada; indicadores continuam mostrando o total do estoque.</p></article>
+            <article class="uc-card"><h3>UC03 · Editar caminhão</h3><p><b>Pré:</b> veículo cadastrado.<br><b>Fluxo:</b> abrir edição → alterar campos → revalidar → atualizar a mesma linha e atualizar a tela.<br><b>Alternativa:</b> duplicidade de placa ou erro de conexão não confirma a edição.</p></article>
+            <article class="uc-card"><h3>UC04 · Excluir caminhão</h3><p><b>Pré:</b> veículo cadastrado.<br><b>Fluxo:</b> solicitar exclusão → confirmar → API remove do SQLite → lista e indicadores atualizam.<br><b>Alternativa:</b> cancelar, clicar fora ou pressionar Esc mantém o registro.</p></article>
+          </div>
+        </section>
+        
+      </div>
+      <footer class="bottom"><div class="progress"><span id="pageCount">01 / 15</span><span class="bar"><i id="progressBar" style="width:6.67%"></i></span></div><div class="controls"><button id="previous" disabled>← Anterior</button><div class="dots" id="dots" aria-label="Ir para slide"></div><button class="next" id="next">Próximo →</button></div></footer>
+    </main>
+  </div>
+  <script>
+    (()=>{const slides=[...document.querySelectorAll('.slide')],links=[...document.querySelectorAll('.step-link')],dots=document.getElementById('dots');let current=0;slides.forEach((_,i)=>{const b=document.createElement('button');b.className='dot'+(i===0?' active':'');b.setAttribute('aria-label',`Ir para slide ${i+1}`);b.addEventListener('click',()=>show(i));dots.appendChild(b)});const dotButtons=[...dots.children];function show(index){current=Math.max(0,Math.min(slides.length-1,index));slides.forEach((s,i)=>s.classList.toggle('active',i===current));links.forEach((b,i)=>b.classList.toggle('active',i===current));dotButtons.forEach((b,i)=>b.classList.toggle('active',i===current));document.getElementById('sectionLabel').textContent=slides[current].dataset.title;document.getElementById('pageCount').textContent=`${String(current+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;document.getElementById('progressBar').style.width=`${((current+1)/slides.length)*100}%`;document.getElementById('previous').disabled=current===0;document.getElementById('next').disabled=current===slides.length-1;document.getElementById('next').textContent=current===slides.length-1?'Fim':'Próximo →'}links.forEach((b)=>b.addEventListener('click',()=>show(Number(b.dataset.slide))));document.getElementById('previous').addEventListener('click',()=>show(current-1));document.getElementById('next').addEventListener('click',()=>show(current+1));document.addEventListener('keydown',(e)=>{if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(current+1)}if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(current-1)}});})();
+  </script>
+</body>
+</html>
+
+
+
