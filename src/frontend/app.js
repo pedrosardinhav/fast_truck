@@ -8,13 +8,7 @@
   let toastTimer;
 
   async function request(url, options = {}) {
-    const response = await fetch(url, {
-      ...options,
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Não foi possível concluir a operação.");
-    return result;
+    return window.FT.request(url, options);
   }
 
   const money = (value) => Number(value || 0).toLocaleString("pt-BR", {

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pedidos da loja · FasTruck</title><link rel="stylesheet" href="/css/shared.css"></head>
+<body>
+  <header class="topbar"><a class="brand" href="/admin">Fas<span>Truck</span></a><span>Administração</span></header>
+  <nav id="moduleNav"></nav>
+  <main class="wrap">
+    <div class="heading"><div><div class="eyebrow">E-commerce · empresas</div><h1>Pedidos da loja</h1><p class="muted">Acompanhe os pedidos e as tentativas de pagamento feitas pelos clientes.</p></div><button class="secondary" id="refreshOrders" type="button">Atualizar</button></div>
+    <label class="field"><span>Pesquisar pedido, empresa ou placa</span><input id="searchOrders" type="search" placeholder="Número, CNPJ, empresa ou placa"></label>
+    <p class="notice">Os pagamentos são simulados e não movimentam dinheiro. Pedidos não reservam caminhões automaticamente.</p>
+    <section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Pedido</th><th>Empresa</th><th>Caminhão</th><th>Status</th><th>Total</th><th></th></tr></thead><tbody id="orderRows"></tbody></table></div><p id="orderStatus" role="status">Carregando pedidos…</p></section>
+    <section class="panel" id="orderDetail" hidden style="margin-top:24px"></section>
+  </main>
+  <script src="/js/shared.js"></script><script src="/js/pedidos.js"></script>
+</body></html>

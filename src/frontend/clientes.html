@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#142b4a">
+  <title>FasTruck — Clientes PJ</title><link rel="stylesheet" href="/css/shared.css">
+  <script defer src="/js/shared.js"></script><script defer src="/js/clientes.js"></script>
+  <style>.customer-dialog{width:min(820px,94vw)}.customer-lookup{display:flex;gap:8px}.customer-detail dl{display:grid;grid-template-columns:1fr 1fr;gap:12px}.customer-detail dt{font-size:11px;color:var(--muted)}.customer-detail dd{margin:3px 0;overflow-wrap:anywhere}.customer-detail h3{margin-top:22px}.customer-form-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.customer-form-head h2{margin:0}.customer-list-tools{padding-top:18px}@media(max-width:600px){.customer-detail dl{grid-template-columns:1fr}.customer-lookup{flex-wrap:wrap}.customer-lookup input{flex:1;min-width:140px}}</style>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/">Fas<span>Truck</span></a><span class="avatar">FT</span></header><nav id="moduleNav"></nav>
+  <main class="wrap">
+    <div class="eyebrow">Relacionamento / Empresas</div>
+    <section class="heading"><div><h1>Clientes pessoa jurídica</h1><p>Dados empresariais e contatos para suas próximas propostas.</p></div><button class="primary" id="newCustomer">Nova empresa</button></section>
+    <section class="stats" aria-label="Resumo de clientes"><article class="stat"><span>Empresas cadastradas</span><strong id="customerCount">0</strong></article><article class="stat"><span>Ativas</span><strong id="activeCount">0</strong></article><article class="stat"><span>Inativas</span><strong id="inactiveCount">0</strong></article></section>
+    <section class="panel"><div class="panel-head"><h2>Empresas cadastradas</h2><button class="secondary" id="reloadCustomers">Atualizar</button></div>
+      <div class="toolbar"><label class="search"><span class="hint">Pesquisar empresa, CNPJ ou responsável</span><input id="search" type="search" aria-label="Pesquisar clientes" placeholder="Razão social, CNPJ ou responsável…"></label><label class="field"><span class="hint">Situação</span><select id="statusFilter" class="filter"><option value="all">Todas</option><option value="active">Ativas</option><option value="inactive">Inativas</option></select></label></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Empresa</th><th>CNPJ</th><th>Responsável</th><th>Situação</th><th>Ações</th></tr></thead><tbody id="customersBody"></tbody></table></div><p class="empty" id="emptyState" hidden>Nenhuma empresa encontrada.</p><p id="listStatus" class="muted panel-body" role="status" aria-live="polite">Carregando…</p>
+    </section>
+  </main>
+  <dialog class="customer-dialog" id="customerDialog" aria-labelledby="formTitle">
+    <form id="customerForm"><div class="customer-form-head"><h2 id="formTitle">Nova empresa</h2><button class="secondary" id="closeForm" type="button">Fechar</button></div>
+      <p class="notice">A consulta CNPJ é opcional. Os dígitos válidos não comprovam existência ou titularidade; revise os dados antes de salvar.</p>
+      <div class="fields"><div class="field full"><label for="cnpj">CNPJ *</label><div class="customer-lookup"><input id="cnpj" required maxlength="18" spellcheck="false" autocapitalize="characters" aria-describedby="lookupMessage"><button class="secondary" id="lookupCnpj" type="button">Consultar CNPJ</button></div><small id="lookupMessage" role="status" aria-live="polite">Cadastro manual disponível mesmo sem internet.</small></div></div>
+      <div id="clientFields" class="fields" style="margin-top:13px"></div><p id="clientError" class="notice error" role="alert" hidden></p>
+      <div class="form-actions"><button class="secondary" id="cancelForm" type="button">Cancelar</button><button class="primary" id="saveCustomer" type="submit">Salvar empresa</button></div>
+    </form>
+  </dialog>
+  <dialog class="customer-dialog customer-detail" id="detailDialog" aria-labelledby="detailTitle"><div class="customer-form-head"><h2 id="detailTitle">Ficha da empresa</h2><button class="secondary" id="closeDetails">Fechar</button></div><div id="customerDetails"></div><h3>Propostas vinculadas</h3><div id="proposalHistory"></div></dialog>
+</body></html>

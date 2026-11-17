@@ -4,12 +4,19 @@ from __future__ import annotations
 
 import json
 import math
+import mimetypes
+import hmac
 import re
 import sqlite3
 import uuid
+from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.cookies import SimpleCookie, CookieError
 from pathlib import Path
 from urllib.parse import unquote, urlparse
+
+from common import ApiError
+from db import connect_db, transaction, initialize_database as migrate_database, database_path
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
@@ -58,18 +65,9 @@ DEMO_VEHICLES_EXTRA = [
 ]
 
 
-def connect_db() -> sqlite3.Connection:
-    DB_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
-
-
 def initialize_database() -> None:
-    with connect_db() as conn:
-        schema_path = PROJECT_DIR / "sql" / "schema.sql"
-        conn.executescript(schema_path.read_text(encoding="utf-8"))
+    migrate_database()
+    with transaction() as conn:
         seeded = conn.execute(
             "SELECT value FROM app_meta WHERE key = 'demo_seeded'"
         ).fetchone()
@@ -167,16 +165,18 @@ def validate_vehicle(payload: object) -> dict:
 class FasTruckHandler(BaseHTTPRequestHandler):
     server_version = "FasTruck/1.0"
 
-    def send_json(self, status: int, body: object) -> None:
+    def send_json(self, status: int, body: object, headers=None) -> None:
         encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
         self.send_header("Cache-Control", "no-store")
+        for key, value in (headers or {}).items():
+            self.send_header(key, value)
         self.end_headers()
         self.wfile.write(encoded)
 
-    def read_json(self) -> object:
+    def read_json(self, exact_numbers=False) -> object:
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
@@ -184,35 +184,48 @@ class FasTruckHandler(BaseHTTPRequestHandler):
         if length <= 0 or length > 64_000:
             raise ValueError("O conteúdo enviado está vazio ou excede o limite permitido.")
         try:
-            return json.loads(self.rfile.read(length).decode("utf-8"))
+            options = {"parse_float": str} if exact_numbers else {}
+            return json.loads(self.rfile.read(length).decode("utf-8"), **options)
         except (UnicodeDecodeError, json.JSONDecodeError):
             raise ValueError("O conteúdo enviado não é um JSON válido.") from None
 
     def do_GET(self) -> None:
+        if self.route_access("GET") or self.route_new_modules("GET"):
+            return
         path = urlparse(self.path).path
         if path == "/api/vehicles":
-            with connect_db() as conn:
+            with closing(connect_db()) as conn:
                 vehicles = [dict(row) for row in conn.execute(
                     "SELECT * FROM vehicles ORDER BY rowid DESC"
                 )]
             self.send_json(200, vehicles)
             return
-        if path in {"/", "/index.html"}:
+        if path in {"/", "/index.html", "/loja", "/loja/", "/loja.html"}:
+            self.serve_file(FRONTEND_DIR / "loja.html", "text/html; charset=utf-8")
+            return
+        if path in {"/admin", "/admin/", "/admin/index.html"}:
             self.serve_file(FRONTEND_DIR / "index.html", "text/html; charset=utf-8")
             return
         if path == "/app.js":
             self.serve_file(FRONTEND_DIR / "app.js", "text/javascript; charset=utf-8")
             return
+        candidate = (FRONTEND_DIR / unquote(path).lstrip("/")).resolve()
+        if candidate.is_relative_to(FRONTEND_DIR.resolve()) and candidate.suffix in {".html", ".css", ".js", ".svg", ".png"} and candidate.is_file():
+            content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
+            self.serve_file(candidate, content_type + ("; charset=utf-8" if candidate.suffix in {".html", ".css", ".js"} else ""))
+            return
         self.send_json(404, {"error": "Página não encontrada."})
 
     def do_POST(self) -> None:
+        if self.route_access("POST") or self.route_new_modules("POST"):
+            return
         if urlparse(self.path).path != "/api/vehicles":
             self.send_json(404, {"error": "Rota não encontrada."})
             return
         try:
             vehicle = validate_vehicle(self.read_json())
             vehicle["id"] = str(uuid.uuid4())
-            with connect_db() as conn:
+            with transaction() as conn:
                 conn.execute(
                     """INSERT INTO vehicles
                     (id, plate, brand, model, year, color, body, axles, fuel, km,
@@ -229,6 +242,8 @@ class FasTruckHandler(BaseHTTPRequestHandler):
             self.send_json(409, {"error": message})
 
     def do_PUT(self) -> None:
+        if self.route_access("PUT") or self.route_new_modules("PUT"):
+            return
         vehicle_id = self.vehicle_id_from_path()
         if not vehicle_id:
             self.send_json(404, {"error": "Rota não encontrada."})
@@ -236,7 +251,7 @@ class FasTruckHandler(BaseHTTPRequestHandler):
         try:
             vehicle = validate_vehicle(self.read_json())
             vehicle["id"] = vehicle_id
-            with connect_db() as conn:
+            with transaction() as conn:
                 cursor = conn.execute(
                     """UPDATE vehicles SET
                     plate=:plate, brand=:brand, model=:model, year=:year,
@@ -256,16 +271,164 @@ class FasTruckHandler(BaseHTTPRequestHandler):
             self.send_json(409, {"error": message})
 
     def do_DELETE(self) -> None:
+        if self.route_access("DELETE") or self.route_new_modules("DELETE"):
+            return
         vehicle_id = self.vehicle_id_from_path()
         if not vehicle_id:
             self.send_json(404, {"error": "Rota não encontrada."})
             return
-        with connect_db() as conn:
-            cursor = conn.execute("DELETE FROM vehicles WHERE id = ?", (vehicle_id,))
+        try:
+            with transaction() as conn:
+                if conn.execute("SELECT 1 FROM proposals WHERE vehicle_id=? LIMIT 1", (vehicle_id,)).fetchone():
+                    self.send_json(409, {"error": "Caminhão com propostas vinculadas não pode ser excluído."})
+                    return
+                cursor = conn.execute("DELETE FROM vehicles WHERE id = ?", (vehicle_id,))
+        except sqlite3.IntegrityError:
+            self.send_json(409, {"error": "Há registros vinculados a este caminhão."})
+            return
         if cursor.rowcount == 0:
             self.send_json(404, {"error": "Caminhão não encontrado."})
             return
         self.send_json(200, {"message": "Caminhão removido."})
+
+    def cookie_token(self):
+        try:
+            cookie = SimpleCookie()
+            cookie.load(self.headers.get("Cookie", ""))
+            token = cookie.get("fastruck_session")
+            return token.value if token and len(token.value) <= 256 else ""
+        except CookieError:
+            return ""
+
+    def current_user(self):
+        from services.shop_auth import session
+        return session(self.cookie_token())
+
+    def require_user(self, admin=False):
+        user = self.current_user()
+        if not user:
+            raise ApiError(401, "Entre na sua conta para continuar.")
+        if admin and user["role"] != "admin":
+            raise ApiError(403, "Esta área é exclusiva da administração.")
+        return user
+
+    def check_origin(self):
+        origin = self.headers.get("Origin")
+        if origin:
+            parsed = urlparse(origin)
+            if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() != self.headers.get("Host", "").lower():
+                raise ApiError(403, "Origem da requisição não permitida.")
+
+    def check_csrf(self, user):
+        self.check_origin()
+        supplied = self.headers.get("X-CSRF-Token", "")
+        if not supplied or not hmac.compare_digest(supplied, user["csrf_token"]):
+            raise ApiError(403, "Sessão desatualizada. Atualize a página e tente novamente.")
+
+    def route_access(self, method):
+        """Loja pública; dados administrativos exigem conta de administrador."""
+        path = unquote(urlparse(self.path).path).rstrip("/")
+        if path == "/api/shop" or path.startswith("/api/shop/"):
+            self.route_shop(method, path)
+            return True
+        try:
+            if path == "/api" or path.startswith("/api/"):
+                user = self.require_user(admin=True)
+                if method not in {"GET", "HEAD"}:
+                    self.check_csrf(user)
+            elif path in {"/admin", "/admin/index.html", "/clientes.html", "/propostas.html", "/pagamentos.html", "/pedidos.html"}:
+                user = self.current_user()
+                if not user or user["role"] != "admin":
+                    self.send_response(302)
+                    self.send_header("Location", "/loja.html#entrar")
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    return True
+        except ApiError as exc:
+            self.send_json(exc.status, {"error": exc.message})
+            return True
+        return False
+
+    def route_shop(self, method, path):
+        from services import shop_auth, shop_orders
+        try:
+            if method not in {"GET", "POST"}:
+                raise ApiError(405, "Método não permitido.")
+            if method == "GET" and path == "/api/shop/session":
+                current = self.current_user()
+                user = {k: current[k] for k in ("id", "email", "role", "customer_id")} if current else None
+                self.send_json(200, {"user": user, "csrf_token": current["csrf_token"] if current else None})
+                return
+            payload = self.read_json(exact_numbers=True) if method == "POST" else None
+            if method == "POST":
+                self.check_origin()
+            if path in {"/api/shop/login", "/api/shop/register"}:
+                if method != "POST":
+                    raise ApiError(405, "Use POST para acessar sua conta.")
+                if path.endswith("/register"):
+                    shop_auth.register(payload)
+                    user, token, csrf = shop_auth.login({"email": payload["account_email"], "password": payload["password"]})
+                else:
+                    user, token, csrf = shop_auth.login(payload)
+                shop_auth.logout(self.cookie_token())
+                self.send_json(201 if path.endswith("/register") else 200, {"user": user, "csrf_token": csrf},
+                               {"Set-Cookie": f"fastruck_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800"})
+                return
+            user = None
+            public = method == "GET" and path in {"/api/shop/catalog", "/api/shop/customizations"}
+            if not public:
+                user = self.require_user()
+                if method == "POST":
+                    self.check_csrf(user)
+            if path == "/api/shop/logout" and method == "POST":
+                shop_auth.logout(self.cookie_token())
+                self.send_json(200, {"ok": True}, {"Set-Cookie": "fastruck_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"})
+                return
+            result = shop_orders.handle_request(method, path, payload, user)
+            if result is None:
+                raise ApiError(404, "Página ou pedido não encontrado.")
+            self.send_json(*result)
+        except ApiError as exc:
+            self.send_json(exc.status, {"error": exc.message})
+        except ValueError as exc:
+            self.send_json(400, {"error": str(exc)})
+        except sqlite3.IntegrityError:
+            self.send_json(409, {"error": "Já existe um registro ou uma operação com esses dados."})
+        except sqlite3.OperationalError:
+            self.send_json(503, {"error": "Banco temporariamente indisponível. Tente novamente."})
+        except Exception:
+            self.send_json(500, {"error": "Não foi possível concluir a operação. Tente novamente."})
+
+    def route_new_modules(self, method):
+        url = urlparse(self.path)
+        path = unquote(url.path).rstrip("/")
+        if not any(path == p or path.startswith(p + "/") for p in ("/api/customers", "/api/cnpj", "/api/proposals", "/api/payments")):
+            return False
+        try:
+            from services import customers, proposals, payments
+            payload = self.read_json(exact_numbers=True) if method in {"POST", "PUT"} else None
+            module_path = path + ("?" + url.query if url.query and path == "/api/payments" else "")
+            for module in (customers, proposals, payments):
+                result = module.handle_request(method, module_path, payload)
+                if result is not None:
+                    self.send_json(*result)
+                    return True
+            self.send_json(404, {"error": "Rota não encontrada."})
+        except ApiError as exc:
+            self.send_json(exc.status, {"error": exc.message})
+        except ValueError as exc:
+            self.send_json(400, {"error": str(exc)})
+        except sqlite3.IntegrityError:
+            self.send_json(409, {"error": "Operação bloqueada por vínculo ou registro duplicado."})
+        except sqlite3.OperationalError:
+            self.send_json(503, {"error": "Banco temporariamente indisponível. Tente novamente."})
+        except Exception:
+            self.send_json(500, {"error": "Não foi possível concluir a operação. Tente novamente."})
+        return True
+
+    def do_PATCH(self):
+        if not self.route_access("PATCH") and not self.route_new_modules("PATCH"):
+            self.send_json(405, {"error": "Método não permitido."})
 
     def vehicle_id_from_path(self) -> str | None:
         match = re.fullmatch(r"/api/vehicles/([^/]+)", urlparse(self.path).path)
@@ -280,6 +443,7 @@ class FasTruckHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(content)
 
@@ -289,9 +453,12 @@ class FasTruckHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     initialize_database()
+    from services.shop_auth import ensure_admin
+    ensure_admin()
     server = ThreadingHTTPServer((HOST, PORT), FasTruckHandler)
     print(f"FasTruck disponível em http://{HOST}:{PORT}")
-    print(f"Banco SQLite: {DB_PATH}")
+    print(f"Banco SQLite: {database_path()}")
+    print("Administração: /admin — acesso inicial em data/.admin-access")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
