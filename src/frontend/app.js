@@ -1,188 +1,35 @@
 (() => {
-  const $ = (id) => document.getElementById(id);
-  const form = $("truckForm");
-  const rows = $("truckRows");
-  let trucks = [];
-  let editId = null;
-  let deleteId = null;
-  let toastTimer;
-
-  async function request(url, options = {}) {
-    return window.FT.request(url, options);
+  const $=id=>document.getElementById(id), F=window.FT, e=F.escape;
+  const form=$("truckForm"); let trucks=[], editId=null, deleteId=null, saleId=null, saleKey=null, view="active", timer, deleteReturnFocus=null;
+  const request=(url,options={})=>F.request(url,options), money=n=>F.money(Math.round(Number(n||0)*100));
+  const date=d=>d?new Date(d).toLocaleString("pt-BR"):"—";
+  function notify(text){$("toast").textContent=text;$("toast").classList.add("show");clearTimeout(timer);timer=setTimeout(()=>$("toast").classList.remove("show"),4500);}
+  function render(){
+    const q=$("search").value.trim().toLocaleLowerCase("pt-BR"), status=$("filter").value;
+    const active=trucks.filter(t=>!t.deleted_at), current=trucks.filter(t=>view==="deleted"?!!t.deleted_at:!t.deleted_at);
+    const shown=current.filter(t=>(status==="todos"||t.status===status)&&[t.plate,t.brand,t.model].some(v=>String(v||"").toLocaleLowerCase("pt-BR").includes(q)));
+    $("truckRows").innerHTML=shown.map(t=>`<tr><td><div class="truck-name"><span><b>${e(t.brand)}</b><small>${e(t.model)} · ${e(t.color)}</small></span></div></td><td class="plate">${e(t.plate)}</td><td>${e(t.year)}</td><td>${t.customized==="sim"?"Personalizado":"Original"}</td><td><span class="status ${e(t.status.toLocaleLowerCase("pt-BR"))}">${t.deleted_at?"Excluído · ":""}${e(t.status)}</span></td><td class="price">${money(t.price)}</td><td><div class="actions"><button class="stock-action" data-detail="${e(t.id)}">Detalhes</button>${!t.deleted_at?`${!t.reserved_order_id?`<button class="stock-action" data-edit="${e(t.id)}">Editar</button>`:""}${t.status!=="Vendido"&&!t.reserved_order_id?`<button class="stock-action" data-sell="${e(t.id)}">Registrar venda</button>`:""}${t.status!=="Reservado"?`<button class="stock-action" data-delete="${e(t.id)}">Excluir</button>`:""}`:""}</div></td></tr>`).join("");
+    $("empty").hidden=shown.length!==0;$("empty").innerHTML=`<strong>${view==="deleted"?"Nenhum veículo excluído encontrado":"Nenhum caminhão encontrado"}</strong><span>Tente alterar a busca ou o filtro.</span>`;
+    $("count").textContent=`${current.length} veículo(s)`;$("statTotal").textContent=active.length;$("statAvailable").textContent=active.filter(t=>t.status==="Disponível").length;$("statCustom").textContent=active.filter(t=>t.customized==="sim").length;$("statValue").textContent=money(active.filter(t=>t.status!=="Vendido").reduce((s,t)=>s+Number(t.price||0),0));
+    $("activeView").setAttribute("aria-pressed",String(view==="active"));$("deletedView").setAttribute("aria-pressed",String(view==="deleted"));
   }
-
-  const money = (value) => Number(value || 0).toLocaleString("pt-BR", {
-    style: "currency", currency: "BRL", maximumFractionDigits: 0,
-  });
-  const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  })[char]);
-  const truckIcon = '<svg viewBox="0 0 42 30" fill="none" aria-hidden="true"><path d="M2 4h24v17H2zM26 10h8l7 7v4H26z" fill="currentColor" opacity=".12"/><path d="M2 4h24v17H2zM26 10h8l7 7v4H26z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="10" cy="23" r="3" fill="white" stroke="currentColor" stroke-width="1.8"/><circle cx="33" cy="23" r="3" fill="white" stroke="currentColor" stroke-width="1.8"/><path d="M29 11v6h9" stroke="currentColor" stroke-width="1.5"/></svg>';
-
-  function notify(message) {
-    const toast = $("toast");
-    toast.textContent = message;
-    toast.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
-  }
-
-  function render() {
-    const query = $("search").value.trim().toLocaleLowerCase("pt-BR");
-    const filter = $("filter").value;
-    const shown = trucks.filter((truck) => (
-      (filter === "todos" || truck.status === filter)
-      && [truck.plate, truck.brand, truck.model].some((value) => (
-        String(value || "").toLocaleLowerCase("pt-BR").includes(query)
-      ))
-    ));
-
-    rows.innerHTML = shown.map((truck) => `
-      <tr>
-        <td><div class="truck-name"><span class="truck-thumb">${truckIcon}</span><span><b>${escape(truck.brand)}</b><small>${escape(truck.model)} · ${escape(truck.color)}</small></span></div></td>
-        <td class="plate">${escape(truck.plate)}</td>
-        <td>${escape(truck.year)}</td>
-        <td>${truck.customized === "sim" ? '<span class="status disponivel">Personalizado</span>' : '<span style="color:#929b93;font-size:10px">Original</span>'}</td>
-        <td><span class="status ${truck.status.toLocaleLowerCase("pt-BR")}">${escape(truck.status)}</span></td>
-        <td class="price">${money(truck.price)}</td>
-        <td><div class="actions">
-          <button class="icon-btn" data-edit="${escape(truck.id)}" aria-label="Editar ${escape(truck.brand)} ${escape(truck.model)}" title="Editar"><svg viewBox="0 0 24 24" fill="none"><path d="m14 5 5 5M4 20l4.2-.8L19 8.4 15.6 5 4.8 15.8 4 20Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          <button class="icon-btn danger" data-delete="${escape(truck.id)}" aria-label="Excluir ${escape(truck.brand)} ${escape(truck.model)}" title="Excluir"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        </div></td>
-      </tr>`).join("");
-
-    $("empty").hidden = shown.length !== 0;
-    $("count").textContent = `${trucks.length} ${trucks.length === 1 ? "veículo" : "veículos"}`;
-    $("statTotal").textContent = trucks.length;
-    $("statAvailable").textContent = trucks.filter((truck) => truck.status === "Disponível").length;
-    $("statCustom").textContent = trucks.filter((truck) => truck.customized === "sim").length;
-    $("statValue").textContent = money(trucks.reduce((sum, truck) => sum + Number(truck.price || 0), 0));
-  }
-
-  function resetForm() {
-    form.reset();
-    editId = null;
-    $("formHeading").textContent = "Novo caminhão";
-    $("saveBtn").textContent = "Cadastrar caminhão";
-    $("cancelEdit").hidden = true;
-  }
-
-  function startEdit(id) {
-    const truck = trucks.find((item) => item.id === id);
-    if (!truck) return;
-    editId = id;
-    for (const [key, value] of Object.entries(truck)) {
-      const field = form.elements[key];
-      if (field) field.value = value ?? "";
-    }
-    $("formHeading").textContent = "Editar caminhão";
-    $("saveBtn").textContent = "Salvar alterações";
-    $("cancelEdit").hidden = false;
-    $("formPanel").scrollIntoView({ behavior: "smooth", block: "start" });
-    $("plate").focus({ preventScroll: true });
-  }
-
-  function formatPlate(value) {
-    const plate = value.toLocaleUpperCase("pt-BR").replace(/[^A-Z0-9]/g, "").slice(0, 7);
-    return plate.length > 3 ? `${plate.slice(0, 3)}-${plate.slice(3)}` : plate;
-  }
-
-  $("plate").addEventListener("input", (event) => {
-    event.target.value = formatPlate(event.target.value);
-  });
-  $("year").addEventListener("input", (event) => {
-    event.target.value = event.target.value.replace(/[^0-9/ ]/g, "").slice(0, 9);
-  });
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!form.reportValidity()) return;
-    const data = Object.fromEntries(new FormData(form).entries());
-    data.plate = formatPlate(data.plate);
-    if (!/^[A-Z]{3}-[0-9][A-Z0-9][0-9]{2}$/.test(data.plate)) {
-      notify("Informe uma placa válida no padrão atual ou antigo.");
-      $("plate").focus();
-      return;
-    }
-    data.price = Number(data.price);
-    data.km = Number(data.km || 0);
-    const duplicate = trucks.some((truck) => truck.plate === data.plate && truck.id !== editId);
-    if (duplicate) {
-      notify("Já existe um caminhão cadastrado com essa placa.");
-      $("plate").focus();
-      return;
-    }
-
-    const saveButton = $("saveBtn");
-    saveButton.disabled = true;
-    try {
-      const saved = editId
-        ? await request(`/api/vehicles/${encodeURIComponent(editId)}`, { method: "PUT", body: JSON.stringify(data) })
-        : await request("/api/vehicles", { method: "POST", body: JSON.stringify(data) });
-      if (editId) trucks = trucks.map((truck) => truck.id === editId ? saved : truck);
-      else trucks.unshift(saved);
-      render();
-      const wasEditing = Boolean(editId);
-      resetForm();
-      notify(wasEditing ? "Caminhão atualizado com sucesso." : "Caminhão cadastrado com sucesso.");
-    } catch (error) {
-      notify(error.message || "Não foi possível salvar. Confira se o servidor está ativo.");
-    } finally {
-      saveButton.disabled = false;
-    }
-  });
-
-  rows.addEventListener("click", (event) => {
-    const editButton = event.target.closest("[data-edit]");
-    const deleteButton = event.target.closest("[data-delete]");
-    if (editButton) startEdit(editButton.dataset.edit);
-    if (deleteButton) {
-      deleteId = deleteButton.dataset.delete;
-      $("confirmDialog").classList.add("open");
-      $("keepTruck").focus();
-    }
-  });
-
-  $("deleteTruck").addEventListener("click", async () => {
-    if (!deleteId) return;
-    const confirmButton = $("deleteTruck");
-    confirmButton.disabled = true;
-    try {
-      await request(`/api/vehicles/${encodeURIComponent(deleteId)}`, { method: "DELETE" });
-      trucks = trucks.filter((truck) => truck.id !== deleteId);
-      render();
-      $("confirmDialog").classList.remove("open");
-      notify("Caminhão removido do cadastro.");
-      deleteId = null;
-    } catch (error) {
-      notify(error.message || "Não foi possível excluir o caminhão.");
-    } finally {
-      confirmButton.disabled = false;
-    }
-  });
-
-  $("keepTruck").addEventListener("click", () => $("confirmDialog").classList.remove("open"));
-  $("confirmDialog").addEventListener("click", (event) => {
-    if (event.target === $("confirmDialog")) $("confirmDialog").classList.remove("open");
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") $("confirmDialog").classList.remove("open");
-  });
-  $("newTruck").addEventListener("click", () => {
-    resetForm();
-    $("formPanel").scrollIntoView({ behavior: "smooth", block: "start" });
-    $("plate").focus({ preventScroll: true });
-  });
-  $("cancelEdit").addEventListener("click", resetForm);
-  $("search").addEventListener("input", render);
-  $("filter").addEventListener("change", render);
-
-  request("/api/vehicles")
-    .then((items) => { trucks = items; render(); })
-    .catch(() => {
-      render();
-      $("empty").hidden = false;
-      $("empty").innerHTML = "<strong>Servidor indisponível</strong><span>Inicie o servidor Python para carregar os caminhões.</span>";
-      notify("Não foi possível conectar ao banco de dados local.");
-    });
+  async function load(){trucks=await request("/api/vehicles?view=all");render();}
+  const soldOption=Array.from($("status").options).find(o=>o.value==="Vendido");
+  function reset(){form.reset();editId=null;$("status").disabled=false;soldOption.disabled=true;$("formHeading").textContent="Novo caminhão";$("saveBtn").textContent="Cadastrar caminhão";$("cancelEdit").hidden=true;}
+  function edit(id){const t=trucks.find(t=>t.id===id);if(!t||t.deleted_at||t.reserved_order_id)return;reset();editId=id;soldOption.disabled=t.status!=="Vendido";for(const[k,v]of Object.entries(t)){const field=form.elements.namedItem(k);if(field&&"value"in field)field.value=v??"";}$("status").disabled=t.status==="Vendido";$("formHeading").textContent="Editar caminhão";$("saveBtn").textContent="Salvar alterações";$("cancelEdit").hidden=false;$("formPanel").scrollIntoView({behavior:"smooth"});$("plate").focus({preventScroll:true});}
+  const plate=v=>{const p=v.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,7);return p.length>3?`${p.slice(0,3)}-${p.slice(3)}`:p;};
+  $("plate").addEventListener("input",ev=>{ev.target.value=plate(ev.target.value);});$("year").addEventListener("input",ev=>{ev.target.value=ev.target.value.replace(/[^0-9/ ]/g,"").slice(0,9);});
+  form.addEventListener("submit",async ev=>{ev.preventDefault();if(!form.reportValidity())return;const data=Object.fromEntries(new FormData(form));data.status=$("status").value;data.plate=plate(data.plate);data.price=Number(data.price);data.km=Number(data.km||0);$("saveBtn").disabled=true;try{const editing=!!editId;await request(editId?`/api/vehicles/${encodeURIComponent(editId)}`:"/api/vehicles",{method:editing?"PUT":"POST",body:JSON.stringify(data)});await load();reset();notify(editing?"Caminhão atualizado.":"Caminhão cadastrado.");}catch(err){notify(err.message);}finally{$("saveBtn").disabled=false;}});
+  async function detail(id){try{const t=await request(`/api/vehicles/${encodeURIComponent(id)}`),labels={created:"Cadastro",updated:"Alteração",deleted:"Exclusão",reserved:"Reserva",released:"Liberação da reserva",sold:"Venda"};
+    const changes=ev=>{if(!ev.before||!ev.after)return"";const fields={plate:"Placa",brand:"Marca",model:"Modelo",year:"Ano",color:"Cor",price:"Preço",status:"Status",notes:"Observações",body:"Carroceria",axles:"Tração",fuel:"Combustível",km:"Quilometragem",customized:"Personalizado"};return Object.entries(fields).filter(([k])=>ev.before[k]!==ev.after[k]).map(([k,label])=>`${label}: ${ev.before[k]??"—"} → ${ev.after[k]??"—"}`).join("\n");};
+    $("vehicleDetailBody").innerHTML=`<h3>${e(t.brand)} ${e(t.model)} · ${e(t.plate)}</h3><dl><dt>Situação</dt><dd>${t.deleted_at?"Excluído · ":""}${e(t.status)}</dd><dt>Ano / cor / quilometragem</dt><dd>${e(t.year)} · ${e(t.color)} · ${Number(t.km||0).toLocaleString("pt-BR")} km</dd><dt>Carroceria / tração / combustível</dt><dd>${e(t.body||"—")} · ${e(t.axles||"—")} · ${e(t.fuel||"—")}</dd><dt>Valor anunciado</dt><dd>${money(t.price)}</dd><dt>Personalizações / observações</dt><dd>${e(t.notes||"Sem observações")}</dd>${t.reserved_until?`<dt>Reserva até</dt><dd>${e(date(t.reserved_until))}</dd>`:""}${t.deleted_at?`<dt>Excluído em</dt><dd>${e(date(t.deleted_at))}</dd><dt>Motivo</dt><dd>${e(t.deleted_reason)}</dd>`:""}</dl>${t.sale?`<h3>Venda ${e(t.sale.number)}</h3><p>${F.money(t.sale.amount_cents)} · ${e(date(t.sale.created_at))}<br>Canal: ${t.sale.channel==="shop"?"Loja":"Administrativo"}</p>`:t.status==="Vendido"?"<p>Registro anterior ao histórico de vendas.</p>":""}<h3>Histórico</h3>${t.events.length?t.events.map(ev=>`<details><summary>${e(labels[ev.action]||ev.action)} · ${e(date(ev.created_at))}</summary>${ev.reason?`<p>${e(ev.reason)}</p>`:""}${changes(ev)?`<pre>${e(changes(ev))}</pre>`:""}<p>Registro: ${e(ev.id)}</p></details>`).join(""):"<p>Veículo cadastrado antes da implantação do histórico. As próximas ações serão registradas.</p>"}`;$("vehicleDetail").showModal();}catch(err){notify(err.message);}}
+  async function startSale(id){try{const customers=(await request("/api/customers")).filter(c=>c.active);if(!customers.length){notify("Cadastre uma empresa ativa em Clientes PJ antes de registrar a venda.");return;}const t=trucks.find(t=>t.id===id);saleId=id;saleKey=crypto.randomUUID();$("saleForm").reset();$("saleMessage").textContent="";$("saleVehicle").textContent=`${t.brand} ${t.model} · ${t.plate}`;$("saleCustomer").innerHTML='<option value="">Selecione a empresa</option>'+customers.map(c=>`<option value="${e(c.id)}">${e(c.legal_name)} · ${e(F.cnpj(c.cnpj))}</option>`).join("");$("saleAmount").value=Number(t.price).toFixed(2);$("saleDialog").showModal();}catch(err){notify(err.message);}}
+  $("saleForm").addEventListener("input",()=>{saleKey=crypto.randomUUID();});
+  $("saleForm").addEventListener("submit",async ev=>{ev.preventDefault();if(!$("saleForm").reportValidity())return;if(!await F.confirm("Confirmar a venda? O caminhão será marcado como Vendido e a operação ficará no histórico."))return;$("saleSubmit").disabled=true;try{await request(`/api/vehicles/${encodeURIComponent(saleId)}/sell`,{method:"POST",body:JSON.stringify({customer_id:$("saleCustomer").value,amount:$("saleAmount").value,notes:$("saleNotes").value,idempotency_key:saleKey})});$("saleDialog").close();await load();if(editId===saleId)reset();notify("Venda registrada. Caminhão marcado como Vendido.");}catch(err){$("saleMessage").textContent=err.message;}finally{$("saleSubmit").disabled=false;}});
+  function closeDeleteDialog(restore=true){const dialog=$("confirmDialog");dialog.classList.remove("open");if(restore){const target=deleteReturnFocus?.isConnected?deleteReturnFocus:$("newTruck");target?.focus()}deleteReturnFocus=null;deleteId=null}
+  $("truckRows").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;if(b.dataset.edit)edit(b.dataset.edit);if(b.dataset.detail)detail(b.dataset.detail);if(b.dataset.sell)startSale(b.dataset.sell);if(b.dataset.delete){deleteId=b.dataset.delete;$("deleteReason").value="";deleteReturnFocus=b;$("confirmDialog").classList.add("open");requestAnimationFrame(()=>$("deleteReason").focus());}});
+  $("deleteTruck").addEventListener("click",async()=>{if(!deleteId)return;if(!$("deleteReason").reportValidity()||$("deleteReason").value.trim().length<3){notify("Informe um motivo com pelo menos 3 caracteres.");return;}$("deleteTruck").disabled=true;try{const removedId=deleteId;await request(`/api/vehicles/${encodeURIComponent(removedId)}`,{method:"DELETE",body:JSON.stringify({reason:$("deleteReason").value})});closeDeleteDialog(false);if(editId===removedId)reset();await load();$("newTruck").focus();notify("Veículo excluído. Consulte seus dados em Veículos excluídos.");}catch(err){notify(err.message);}finally{$("deleteTruck").disabled=false;}});
+  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>$(b.dataset.close).close()));$("keepTruck").addEventListener("click",()=>closeDeleteDialog());$("confirmDialog").addEventListener("click",ev=>{if(ev.target===$("confirmDialog"))closeDeleteDialog();});document.addEventListener("keydown",ev=>{const dialog=$("confirmDialog");if(!dialog.classList.contains("open"))return;if(ev.key==="Escape"){ev.preventDefault();closeDeleteDialog();return}if(ev.key==="Tab"){const items=[...dialog.querySelectorAll("textarea:not(:disabled),button:not(:disabled)")];if(ev.shiftKey&&document.activeElement===items[0]){ev.preventDefault();items.at(-1)?.focus()}else if(!ev.shiftKey&&document.activeElement===items.at(-1)){ev.preventDefault();items[0]?.focus()}}});
+  $("newTruck").addEventListener("click",()=>{reset();$("formPanel").scrollIntoView({behavior:"smooth"});$("plate").focus({preventScroll:true});});$("cancelEdit").addEventListener("click",reset);$("search").addEventListener("input",render);$("filter").addEventListener("change",render);
+  for(const[id,value]of[["activeView","active"],["deletedView","deleted"]])$(id).addEventListener("click",()=>{view=value;load().catch(err=>notify(err.message));});$("refreshStock").addEventListener("click",()=>load().catch(err=>notify(err.message)));reset();load().catch(err=>{render();notify(err.message||"Não foi possível carregar o estoque.");});
 })();

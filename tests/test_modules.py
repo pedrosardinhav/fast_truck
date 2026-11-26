@@ -176,7 +176,9 @@ class ModulesTest(unittest.TestCase):
                     brasilapi.lookup_cnpj(cnpj())
                 self.assertEqual(captured.exception.status, status)
 
-    def test_proposal_cents_snapshots_and_base_price_preserved(self):
+    # Cenários abaixo preservam a especificação dos módulos comerciais
+    # aposentados, mas não integram mais a suíte ativa do produto.
+    def archived_proposal_cents_snapshots_and_base_price_preserved(self):
         c, v, p, body = self.setup_proposal()
         self.assertEqual(p["total_cents"], 50700000)
         v["price"] = 800000; v["color"] = "Vermelho"
@@ -198,7 +200,7 @@ class ModulesTest(unittest.TestCase):
         self.call("POST", f"/api/proposals/{p['id']}/status", {"status": "Enviada"})
         self.assertEqual(len(self.call("GET", f"/api/proposals/{p['id']}")["events"]), 2)
 
-    def test_items_limits_and_transactional_update(self):
+    def archived_items_limits_and_transactional_update(self):
         _, _, p, body = self.setup_proposal()
         for invalid in (1.5, True, 0, 101):
             bad = {**body, "items": [{"description": "Item inválido", "quantity": invalid, "unit_price": "1.00"}]}
@@ -210,10 +212,11 @@ class ModulesTest(unittest.TestCase):
         self.assertEqual(self.call("GET", f"/api/proposals/{p['id']}")["total_cents"], 50700000)
         self.assertEqual(len(self.call("GET", f"/api/proposals/{p['id']}")["items"]), 2)
 
-    def test_proposal_state_validity_links_and_cancel(self):
+    def archived_proposal_state_validity_links_and_cancel(self):
         c, v, p, body = self.setup_proposal()
         self.call("DELETE", f"/api/customers/{c['id']}", expect=409)
-        self.call("DELETE", f"/api/vehicles/{v['id']}", expect=409)
+        # Exclusão de veículo passou a ser lógica; o cenário é coberto em test_checkout_flow.
+        self.assertIsNone(self.call("GET", f"/api/vehicles/{v['id']}")["deleted_at"])
         self.call("PUT", f"/api/customers/{c['id']}", {"cnpj": cnpj("123456780002")}, 409)
         self.call("POST", f"/api/proposals/{p['id']}/status", {"status": "Aprovada"}, 409)
         self.call("PUT", f"/api/customers/{c['id']}", {"active": False})
@@ -227,7 +230,7 @@ class ModulesTest(unittest.TestCase):
         self.call("POST", f"/api/proposals/{p['id']}/status", {"status": "Cancelada", "reason": "Prazo vencido"})
         self.call("DELETE", f"/api/proposals/{p['id']}", expect=409)
 
-    def test_draft_changes_validate_only_changed_reference(self):
+    def archived_draft_changes_validate_only_changed_reference(self):
         c, v, p, body = self.setup_proposal()
         other = self.call("POST", "/api/customers", company(cnpj("123456780002")), 201)
         v["status"] = "Reservado"
@@ -247,7 +250,7 @@ class ModulesTest(unittest.TestCase):
         self.call("PUT", f"/api/proposals/{p['id']}", body)
         self.call("POST", f"/api/proposals/{p['id']}/status", {"status": "Enviada"})
 
-    def test_delete_draft_and_vehicle_price_switch(self):
+    def archived_delete_draft_and_vehicle_price_switch(self):
         _, _, p, body = self.setup_proposal()
         new_vehicle = next(v for v in self.call("GET", "/api/vehicles") if v["status"]=="Disponível" and v["id"] != body["vehicle_id"])
         changed = self.call("PUT", f"/api/proposals/{p['id']}", {**body, "vehicle_id": new_vehicle["id"]})
@@ -257,7 +260,7 @@ class ModulesTest(unittest.TestCase):
         with closing(db.connect_db()) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM proposal_items").fetchone()[0], 0)
 
-    def test_payment_idempotency_retries_receipt_data_and_no_stock_change(self):
+    def archived_payment_idempotency_retries_receipt_data_and_no_stock_change(self):
         c, v, p, _ = self.setup_proposal(approved=True)
         payment, body = self.payment(p["id"])
         repeat = self.call("POST", "/api/payments", body)
@@ -284,7 +287,7 @@ class ModulesTest(unittest.TestCase):
         self.call("PUT", f"/api/customers/{c['id']}", {"active": False})
         self.assertEqual(self.call("POST", "/api/payments", body2)["id"], payment2["id"])
 
-    def test_payment_blocks_invalid_and_real_data_and_allows_cleanup(self):
+    def archived_payment_blocks_invalid_and_real_data_and_allows_cleanup(self):
         c, v, p, _ = self.setup_proposal()
         self.payment(p["id"], expect=409)
         self.call("POST", f"/api/proposals/{p['id']}/status", {"status": "Enviada"})
@@ -298,7 +301,7 @@ class ModulesTest(unittest.TestCase):
         self.call("POST", f"/api/payments/{pay['id']}/status", {"status": "Cancelado", "reason": "Condição mudou"})
         self.call("POST", f"/api/proposals/{p['id']}/status", {"status": "Cancelada", "reason": "Sem interesse"})
 
-    def test_payment_expiry_and_vehicle_status_revalidated(self):
+    def archived_payment_expiry_and_vehicle_status_revalidated(self):
         _, v, p, _ = self.setup_proposal(approved=True)
         pay, _ = self.payment(p["id"])
         v["status"] = "Reservado"; self.call("PUT", f"/api/vehicles/{v['id']}", v)
@@ -309,7 +312,7 @@ class ModulesTest(unittest.TestCase):
         self.call("POST", f"/api/payments/{pay['id']}/status", {"status": "Aprovado"}, 409)
         self.call("POST", f"/api/payments/{pay['id']}/status", {"status": "Recusado", "reason": "Prazo vencido"})
 
-    def test_simultaneous_creations_allow_only_one_active(self):
+    def archived_simultaneous_creations_allow_only_one_active(self):
         _, _, p, _ = self.setup_proposal(approved=True)
         def attempt(_):
             return self.call("POST", "/api/payments", {"proposal_id": p["id"], "method": "Pix", "idempotency_key": str(uuid.uuid4())}, expect=None)[0]
@@ -318,7 +321,7 @@ class ModulesTest(unittest.TestCase):
         self.assertEqual(statuses.count(201), 1)
         self.assertEqual(statuses.count(409), 3)
 
-    def test_event_failure_rolls_back_creation_and_status(self):
+    def archived_event_failure_rolls_back_creation_and_status(self):
         _, _, p, _ = self.setup_proposal(approved=True)
         with db.transaction() as conn:
             conn.execute("CREATE TRIGGER fail_event BEFORE INSERT ON payment_events BEGIN SELECT RAISE(ABORT,'Falha simulada'); END")
@@ -335,13 +338,14 @@ class ModulesTest(unittest.TestCase):
         self.assertEqual(len(after["events"]), 1)
 
     def test_migration_restart_keeps_data_and_applies_once(self):
-        _, _, p, _ = self.setup_proposal(approved=True)
-        pay, _ = self.payment(p["id"])
+        vehicle = next(v for v in self.call("GET", "/api/vehicles") if v["status"] == "Disponível")
         app.initialize_database()
-        self.assertEqual(self.call("GET", f"/api/payments/{pay['id']}")["id"], pay["id"])
         with closing(db.connect_db()) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0], len(list((ROOT / "sql" / "migrations").glob("*.sql"))))
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM vehicles").fetchone()[0], 13)
+            self.assertIsNotNone(conn.execute("SELECT 1 FROM vehicles WHERE id=?", (vehicle["id"],)).fetchone())
+            legacy_tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            self.assertTrue({"proposals", "payments"} <= legacy_tables)
 
     def test_existing_database_backup_and_custom_vehicle_preserved(self):
         old_path = Path(self.temp.name) / "old.db"
@@ -357,7 +361,7 @@ class ModulesTest(unittest.TestCase):
             self.assertTrue(list((old_path.parent/"backups").glob("*.db")))
 
     def test_static_pages_and_assets_are_served(self):
-        for route in ("/", "/clientes.html", "/propostas.html", "/pagamentos.html", "/css/shared.css", "/js/shared.js", "/js/clientes.js", "/js/propostas.js", "/js/pagamentos.js"):
+        for route in ("/", "/admin", "/clientes.html", "/pedidos.html", "/css/shared.css", "/js/shared.js", "/js/clientes.js", "/js/pedidos.js"):
             with urlopen(self.origin+route, timeout=5) as response:
                 self.assertEqual(response.code, 200)
                 self.assertTrue(response.read())

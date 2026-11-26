@@ -99,8 +99,11 @@ def _get(conn, customer_id, detail=False):
         raise ApiError(404, "Cliente não encontrado.")
     result = dict(row)
     if detail:
-        result["proposals"] = [dict(r) for r in conn.execute(
-            "SELECT id,number,status,total_cents,valid_until FROM proposals WHERE customer_id=? ORDER BY seq DESC", (customer_id,))]
+        result["cnpj_locked"] = bool(
+            conn.execute("SELECT 1 FROM proposals WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone()
+            or conn.execute("SELECT 1 FROM shop_orders WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone()
+            or conn.execute("SELECT 1 FROM accounts WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone()
+        )
     return result
 
 
@@ -163,7 +166,7 @@ def _update(customer_id, payload):
                 if values["cnpj"] != current["cnpj"] and (conn.execute("SELECT 1 FROM proposals WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone()
                         or conn.execute("SELECT 1 FROM shop_orders WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone()
                         or conn.execute("SELECT 1 FROM accounts WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone()):
-                    raise ApiError(409, "Não é possível alterar CNPJ de uma empresa com conta, proposta ou pedido vinculado.")
+                    raise ApiError(409, "Não é possível alterar o CNPJ de uma empresa com conta, pedido ou histórico comercial.")
             values["updated_at"] = utc_now()
             conn.execute(f"UPDATE customers SET {','.join(k+'=?' for k in values)} WHERE id=?", [*values.values(), customer_id])
             return 200, _get(conn, customer_id, True)
@@ -200,7 +203,7 @@ def handle_request(method, path, payload=None):
         with transaction() as conn:
             _get(conn, customer_id)
             if conn.execute("SELECT 1 FROM proposals WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone():
-                raise ApiError(409, "Empresa com propostas vinculadas não pode ser excluída. Use Inativar.")
+                raise ApiError(409, "Empresa com histórico comercial não pode ser excluída. Use Inativar.")
             if conn.execute("SELECT 1 FROM accounts WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone() or conn.execute("SELECT 1 FROM shop_orders WHERE customer_id=? LIMIT 1", (customer_id,)).fetchone():
                 raise ApiError(409, "Empresa com conta ou pedido vinculado não pode ser excluída. Use Inativar.")
             conn.execute("DELETE FROM customers WHERE id=?", (customer_id,))

@@ -34,7 +34,7 @@
   function openForm(customer=null) {
     generation++; editingId=customer?.id||null; lookupToken=""; lookupCnpj=""; form.reset(); $("clientError").hidden=true;
     $("formTitle").textContent=customer?"Editar empresa":"Nova empresa"; $("cnpj").value=customer?F.cnpj(customer.cnpj):"";
-    $("cnpj").readOnly=Boolean(customer?.proposals?.length); $("lookupCnpj").disabled=consulting;
+    $("cnpj").readOnly=Boolean(customer?.cnpj_locked); $("lookupCnpj").disabled=consulting||Boolean(customer?.cnpj_locked);
     for(const [key] of definitions) if(customer) $(key).value=customer[key]||"";
     $("lookupMessage").textContent=customer?.lookup_at?`Consulta: ${F.date(customer.lookup_at)} · ${customer.lookup_source} · ${customer.lookup_status || "situação não informada"}`:"Cadastro manual disponível mesmo sem internet.";
     dialog.showModal(); $("cnpj").focus();
@@ -44,7 +44,6 @@
     $("detailTitle").textContent=c.legal_name;
     const address=[c.street,c.number,c.complement,c.district,c.city,c.state,c.postal_code].filter(Boolean).join(", ");
     $("customerDetails").innerHTML=`<dl>${[["CNPJ",F.cnpj(c.cnpj)],["Nome fantasia",c.trade_name],["Responsável",c.contact_name],["Telefone / e-mail",`${c.phone} · ${c.email}`],["Endereço",address],["Situação interna",c.active?"Ativo":"Inativo"],["Última consulta",c.lookup_at?`${F.date(c.lookup_at)} · ${c.lookup_source} · ${c.lookup_status}`:"Não consultado"],["Observações",c.notes]].map(([k,v])=>`<div><dt>${e(k)}</dt><dd>${e(v||"—")}</dd></div>`).join("")}</dl>`;
-    $("proposalHistory").innerHTML=c.proposals.length?`<div class="table-wrap"><table class="table"><thead><tr><th>Proposta</th><th>Status</th><th>Validade</th><th>Total</th></tr></thead><tbody>${c.proposals.map(p=>`<tr><td><a href="/propostas.html?id=${encodeURIComponent(p.id)}">${e(p.number)}</a></td><td>${e(p.status)}</td><td>${e(F.date(p.valid_until))}</td><td>${F.money(p.total_cents)}</td></tr>`).join("")}</tbody></table></div>`:'<p class="muted">Nenhuma proposta vinculada.</p>';
     $("detailDialog").showModal();
   }
   $("customersBody").addEventListener("click",async(event)=>{
@@ -54,7 +53,7 @@
       if(b.dataset.action==="detail") await details(c.id);
       if(b.dataset.action==="edit") openForm(await F.request(url));
       if(b.dataset.action==="toggle" && await F.confirm(`${c.active?"Inativar":"Reativar"} ${c.legal_name}? O histórico será preservado.`)) { await F.request(url,{method:"PUT",body:{active:!c.active}}); F.notify("Situação atualizada."); await load(); }
-      if(b.dataset.action==="delete" && await F.confirm(`Excluir permanentemente ${c.legal_name}? Empresas com propostas não podem ser excluídas.`)) { await F.request(url,{method:"DELETE"}); F.notify("Empresa excluída."); await load(); }
+      if(b.dataset.action==="delete" && await F.confirm(`Excluir permanentemente ${c.legal_name}? Empresas com pedidos ou histórico comercial não podem ser excluídas.`)) { await F.request(url,{method:"DELETE"}); F.notify("Empresa excluída."); await load(); }
     } catch(error) { F.notify(error.message,true); } finally { b.disabled=false; }
   });
   $("lookupCnpj").addEventListener("click",async()=>{

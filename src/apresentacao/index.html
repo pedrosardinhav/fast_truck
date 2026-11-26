@@ -44,6 +44,7 @@
       .detail-table th{position:static}.detail-table td{padding:8px}
       .db-table-scroll{overflow:visible}.read-table.db-preview{min-width:0}
       .info-grid,.uc-grid{grid-template-columns:1fr 1fr;margin-top:16px}
+      .mini-form{gap:7px;margin-top:10px}.mini-field{height:36px;padding:5px 8px}.fake-button{padding:7px 11px}
     }
   </style>
 </head>
@@ -53,7 +54,7 @@
       <div class="brand"><span class="mark"><svg viewBox="0 0 36 27" fill="none"><path d="M2 6h19v14H2zM21 11h7l6 6v3H21z" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><circle cx="9" cy="22" r="3" fill="currentColor"/><circle cx="28" cy="22" r="3" fill="currentColor"/></svg></span><span>Fas<span>Truck</span></span></div>
       <div class="kicker">Apresentação · 01</div>
       <h1>O caminho de cada caminhão.</h1>
-      <p>Uma visão rápida de como o cadastro passa pela tela, pela API Python e chega ao banco SQLite.</p>
+      <p>Do cadastro administrativo ao estoque histórico e ao checkout transacional, com Python e SQLite.</p>
       <nav class="step-nav" aria-label="Slides">
         <div class="nav-group">
           <div class="nav-group-title">Fluxo do CRUD</div>
@@ -64,7 +65,7 @@
           <button class="step-link" data-slide="4"><i class="step-num">05</i><span>Create · Cadastrar</span></button>
           <button class="step-link" data-slide="5"><i class="step-num">06</i><span>Read · Consultar</span></button>
           <button class="step-link" data-slide="6"><i class="step-num">07</i><span>Update · Editar</span></button>
-          <button class="step-link" data-slide="7"><i class="step-num">08</i><span>Delete · Excluir</span></button>
+          <button class="step-link" data-slide="7"><i class="step-num">08</i><span>Delete · Arquivar</span></button>
           <button class="step-link" data-slide="8"><i class="step-num">09</i><span>Resumo</span></button>
         </div>
         <div class="nav-group">
@@ -76,8 +77,15 @@
           <button class="step-link" data-slide="13"><i class="step-num">14</i><span>Riscos</span></button>
           <button class="step-link" data-slide="14"><i class="step-num">15</i><span>Casos de uso</span></button>
         </div>
+        <div class="nav-group">
+          <div class="nav-group-title">Ciclo de vida e checkout</div>
+          <button class="step-link" data-slide="15"><i class="step-num">16</i><span>Histórico do veículo</span></button>
+          <button class="step-link" data-slide="16"><i class="step-num">17</i><span>Reserva e pagamento</span></button>
+          <button class="step-link" data-slide="17"><i class="step-num">18</i><span>Regras e rastreabilidade</span></button>
+          <button class="step-link" data-slide="18"><i class="step-num">19</i><span>Premissas e casos de uso</span></button>
+        </div>
       </nav>
-      <div class="side-bottom"><b>FasTruck · CRUD de veículos</b><br>Gestão de veículos FasTruck</div>
+      <div class="side-bottom"><b>FasTruck · estoque e checkout</b><br>Histórico do veículo e compra integrada</div>
     </aside>
     <main class="main">
       <div class="topline"><span id="sectionLabel">Visão geral</span><div class="top-actions"><span class="live"><i></i>HTML independente · sem dependências</span><button type="button" class="download-pdf" id="downloadPdf" title="Escolha Salvar como PDF na janela de impressão para baixar todos os slides.">Baixar PDF ↓</button></div></div>
@@ -90,7 +98,7 @@
             <article class="flow-card"><i class="flow-icon">02</i><small>Back-end</small><b>Python · API REST</b><span>Recebe pedidos HTTP e valida os dados do caminhão.</span></article><div class="arrow">→</div>
             <article class="flow-card"><i class="flow-icon">03</i><small>Banco de dados</small><b>SQLite</b><span>Grava e recupera veículos no arquivo local.</span></article>
           </div>
-          <div class="chips"><span class="chip">CREATE · criar</span><span class="chip">READ · consultar</span><span class="chip">UPDATE · editar</span><span class="chip">DELETE · excluir</span></div>
+          <div class="chips"><span class="chip">CREATE · criar</span><span class="chip">READ · consultar</span><span class="chip">UPDATE · editar</span><span class="chip">DELETE · arquivar</span></div>
         </section>
         <section class="slide compact-slide" data-title="Dados do caminhão">
           <div class="slide-label">Dados enviados pelo formulário</div><h2>O que vai em <span>cada cadastro</span></h2>
@@ -127,7 +135,7 @@ data.km = Number(data.km || 0);</code></pre></div>
     notes TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL CHECK (status IN ('Disponível', 'Reservado', 'Vendido'))
 )</code></pre></div>
-          <p class="example-note">A placa é única. O banco rejeita preço e quilometragem negativos e limita os valores de status.</p>
+          <p class="example-note">A placa é única. Migrações 006/007 estendem essa tabela com deleted_at/by/reason, reserved_order_id/until e sold_at. As tabelas vehicle_sales e vehicle_events preservam venda e auditoria.</p>
         </section>
         <section class="slide compact-slide" data-title="Validações">
           <div class="slide-label">Regras antes de gravar</div><h2>A API confere <span>os dados</span></h2>
@@ -150,10 +158,7 @@ if not math.isfinite(price) or price &lt; 0 or km &lt; 0:
           <div class="endpoint"><span class="method">POST</span><code>/api/vehicles</code><span>→</span><span>201 Criado</span></div>
           <div class="content-grid"><div class="visual"><div class="visual-head"><span>Novo caminhão</span><em>Exemplo do formulário</em></div><div class="mini-form"><div class="mini-field">Placa *<b>FTK-1A26</b></div><div class="mini-field">Status *<b>Disponível</b></div><div class="mini-field">Marca *<b>Iveco</b></div><div class="mini-field">Modelo *<b>S-Way 480</b></div><div class="mini-field">Ano fab. / modelo *<b>2022 / 2023</b></div><div class="mini-field">Valor anunciado *<b>R$ 625.000</b></div><div class="mini-field full">Personalizações<b>Defletor de ar · rodas de alumínio</b></div></div><span class="fake-button">Cadastrar caminhão →</span></div>
             <aside class="steps"><h3>O que acontece?</h3><ol><li><i>1</i>O navegador envia JSON para a API.</li><li><i>2</i>Python valida e normaliza a placa.</li><li><i>3</i>SQLite grava o veículo com um ID.</li><li><i>4</i>A lista e os indicadores são atualizados.</li></ol></aside></div>
-          <div class="example-panel"><div class="example-head"><span>Gravação em transação · import helper `common.ApiError`</span><span>src/backend/app.py · do_POST()</span></div><pre><code>from common import ApiError
-from db import transaction
-
-vehicle = validate_vehicle(self.read_json())
+          <div class="example-panel"><div class="example-head"><span>Trecho da gravação em transação</span><span>src/backend/app.py · do_POST()</span></div><pre><code>vehicle = validate_vehicle(self.read_json())
 vehicle[&quot;id&quot;] = str(uuid.uuid4())
 with transaction() as conn:
     conn.execute(
@@ -163,7 +168,9 @@ with transaction() as conn:
         VALUES (:id, :plate, :brand, :model, :year, :color, :body, :axles,
                 :fuel, :km, :price, :customized, :notes, :status)&quot;&quot;&quot;,
         vehicle,
-    )</code></pre></div>
+    )
+    record_event(conn, vehicle[&quot;id&quot;], &quot;created&quot;,
+                 actor_id=self.require_user(admin=True)[&quot;id&quot;], after=vehicle)</code></pre></div>
         </section>
         <section class="slide" data-title="Read · Consultar">
           <div class="slide-label">02 / Read</div><h2>O estoque fica <span>visível e pesquisável.</span></h2>
@@ -171,12 +178,11 @@ with transaction() as conn:
           <div class="endpoint"><span class="method get">GET</span><code>/api/vehicles</code><span>→</span><span>200 OK · lista JSON</span></div>
           <div class="content-grid"><div class="visual"><div class="visual-head"><span>Caminhões cadastrados</span><em>Exemplo da lista</em></div><table class="read-table"><thead><tr><th>Veículo</th><th>Placa</th><th>Status</th><th>Valor</th></tr></thead><tbody><tr><td>Volvo FH 540</td><td>RTA-4C27</td><td><span class="badge">Disponível</span></td><td>R$ 689.900</td></tr><tr><td>Scania R 450</td><td>BZX-8H41</td><td><span class="badge gold">Reservado</span></td><td>R$ 572.000</td></tr><tr><td>Mercedes Actros 2651</td><td>GKM-2D96</td><td><span class="badge">Disponível</span></td><td>R$ 745.000</td></tr></tbody></table></div>
             <aside class="steps"><h3>O painel resume</h3><ol><li><i>↗</i>Total de veículos cadastrados</li><li><i>✓</i>Quantos estão disponíveis</li><li><i>✦</i>Quantos têm personalização</li><li><i>R$</i>Soma dos valores anunciados</li></ol><div class="chips"><span class="chip">Busca por placa</span><span class="chip">Filtro por status</span></div></aside></div>
-          <div class="example-panel"><div class="example-head"><span>Consulta com fechamento explícito da conexão</span><span>src/backend/app.py · do_GET()</span></div><pre><code>from contextlib import closing
-from db import connect_db
-
-with closing(connect_db()) as conn:
-    vehicles = [dict(row) for row in conn.execute(
-        &quot;SELECT * FROM vehicles ORDER BY rowid DESC&quot;
+          <div class="example-panel"><div class="example-head"><span>Consulta dos ativos; deleted/all permitem consultar o histórico</span><span>src/backend/services/inventory.py · handle_request()</span></div><pre><code>with transaction() as conn:
+    _advance_checkout(conn)
+    where = &quot;&quot; if view == &quot;all&quot; else &quot;WHERE deleted_at IS NULL&quot; if view == &quot;active&quot; else &quot;WHERE deleted_at IS NOT NULL&quot;
+    return 200, [_serialize_vehicle(conn, row) for row in conn.execute(
+        f&quot;SELECT * FROM vehicles {where} ORDER BY rowid DESC&quot;
     )]</code></pre></div>
         </section>
         <section class="slide" data-title="Update · Editar">
@@ -196,28 +202,25 @@ with transaction() as conn:
         vehicle,
     )</code></pre></div>
         </section>
-        <section class="slide" data-title="Delete · Excluir">
-          <div class="slide-label">04 / Delete</div><h2>Excluir pede <span>confirmação.</span></h2>
-          <p class="lead">O administrador escolhe excluir e confirma a ação. A API bloqueia veículos com proposta ou pedido vinculado; se cancelar, o caminhão permanece no estoque.</p>
-          <div class="endpoint"><span class="method delete">DELETE</span><code>/api/vehicles/{id}</code><span>→</span><span>200 Removido</span></div>
-          <div class="content-grid"><div class="visual"><div class="visual-head"><span>Confirmação de exclusão</span><em>Proteção contra clique acidental</em></div><div class="record"><div class="record-top"><span>Excluir Volvo VM 330?</span><em>MNO-7D82</em></div><p>O caminhão será removido do banco SQLite local.</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><span class="fake-button" style="margin:0;background:#f0f3f7;color:#52647a">Manter veículo</span><span class="fake-button" style="margin:0;background:#b45b52">Excluir</span></div></div></div>
-            <aside class="steps"><h3>Depois da confirmação</h3><ol><li><i>1</i>Python verifica vínculos e apaga pelo ID do registro.</li><li><i>2</i>A lista remove o caminhão.</li><li><i>3</i>Os totais do painel são recalculados.</li><li><i>×</i>Cancelar fecha sem mudar o banco.</li></ol></aside></div>
-          <div class="example-panel"><div class="example-head"><span>Exclusão em transação · pedidos protegidos por `ON DELETE RESTRICT`</span><span>src/backend/app.py · do_DELETE()</span></div><pre><code>from db import transaction
-
-try:
-    with transaction() as conn:
-        if conn.execute("SELECT 1 FROM proposals WHERE vehicle_id=? LIMIT 1", (vehicle_id,)).fetchone():
-            self.send_json(409, {"error": "Caminhão com propostas vinculadas não pode ser excluído."})
-            return
-        cursor = conn.execute("DELETE FROM vehicles WHERE id = ?", (vehicle_id,))
-except sqlite3.IntegrityError:
-    self.send_json(409, {"error": "Há registros vinculados a este caminhão."})
-    return</code></pre></div>
+        <section class="slide" data-title="Delete · Arquivar">
+          <div class="slide-label">04 / Delete lógico</div><h2>Arquivar mantém <span>o histórico.</span></h2>
+          <p class="lead">DELETE marca o veículo como arquivado, registra motivo e autor e mantém a linha, a placa, os vínculos comerciais e a trilha de eventos. Veículo Reservado não pode ser arquivado; Vendido pode.</p>
+          <div class="endpoint"><span class="method delete">DELETE</span><code>/api/vehicles/{id}</code><span>→</span><span>200 Arquivado</span></div>
+          <div class="content-grid"><div class="visual"><div class="visual-head"><span>Estado do registro</span><em>Soft delete · linha continua no SQLite</em></div><div class="record"><div class="record-top"><span>Volvo VM 330 · Arquivado</span><em>MNO-7D82</em></div><p>deleted_at, deleted_by e deleted_reason ficam preservados. A placa continua única.</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><span class="fake-button" style="margin:0;background:#f0f3f7;color:#52647a">Ativos</span><span class="fake-button" style="margin:0">Arquivados</span></div></div></div>
+            <aside class="steps"><h3>Depois de arquivar</h3><ol><li><i>1</i>API confirma que não há reserva ativa.</li><li><i>2</i>Atualiza os campos de exclusão lógica.</li><li><i>3</i>Grava evento com estado anterior e novo.</li><li><i>4</i>GET detail continua mostrando venda e eventos.</li></ol></aside></div>
+          <div class="example-panel"><div class="example-head"><span>Atualização condicional · sem DELETE SQL</span><span>src/backend/services/inventory.py · handle_request()</span></div><pre><code>now = utc_now()
+conn.execute(
+    "UPDATE vehicles SET deleted_at=?,deleted_by=?,deleted_reason=? "
+    "WHERE id=? AND deleted_at IS NULL",
+    (now, user.get("id"), reason, vehicle_id),
+)
+record_event(conn, vehicle_id, "deleted", user.get("id"),
+             reason=reason, before=before, after=after)</code></pre></div>
         </section>
         <section class="slide" data-title="Resumo">
           <div class="slide-label">Resumo do percurso</div><h2>Quatro ações. <span>Um estoque organizado.</span></h2>
           <p class="lead">O CRUD cobre o ciclo básico de vida do cadastro de um veículo, com validação no servidor e persistência local em SQLite.</p>
-          <div class="flow summary-flow"><article class="flow-card"><i class="flow-icon" style="background:#eaf3df;color:#55782d">C</i><small>Create</small><b>Cadastrar</b><span>POST cria um veículo.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#eaf0f7;color:#315b88">R</i><small>Read</small><b>Consultar</b><span>GET apresenta o estoque.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#fff4dc;color:#987126">U</i><small>Update</small><b>Editar</b><span>PUT altera os dados.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#fff0ed;color:#a34e45">D</i><small>Delete</small><b>Excluir</b><span>DELETE remove o veículo.</span></article></div>
+          <div class="flow summary-flow"><article class="flow-card"><i class="flow-icon" style="background:#eaf3df;color:#55782d">C</i><small>Create</small><b>Cadastrar</b><span>POST cria e registra evento.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#eaf0f7;color:#315b88">R</i><small>Read</small><b>Consultar</b><span>GET traz ativos, histórico e venda.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#fff4dc;color:#987126">U</i><small>Update</small><b>Editar</b><span>PUT registra mudança.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon" style="background:#fff0ed;color:#a34e45">D</i><small>Delete</small><b>Arquivar</b><span>DELETE preserva a linha.</span></article></div>
           <div class="content-grid"><div class="visual"><div class="visual-head"><span>Tabela vehicles</span><em>Alguns registros do SQLite</em></div><div class="db-table-scroll"><table class="read-table db-preview"><thead><tr><th>Placa</th><th>Marca / modelo</th><th>Ano</th><th>Status</th><th>Preço</th></tr></thead><tbody><tr><td>RTA-4C27</td><td>Volvo FH 540</td><td>2022 / 2023</td><td><span class="badge">Disponível</span></td><td>R$ 689.900</td></tr><tr><td>BZX-8H41</td><td>Scania R 450</td><td>2021 / 2022</td><td><span class="badge gold">Reservado</span></td><td>R$ 572.000</td></tr><tr><td>HJK-5A14</td><td>Iveco S-Way 480</td><td>2022 / 2023</td><td><span class="badge">Disponível</span></td><td>R$ 625.000</td></tr></tbody></table></div></div><aside class="steps"><h3>Operações disponíveis</h3><ol><li><i>1</i>Abra o painel e cadastre um caminhão.</li><li><i>2</i>Pesquise e filtre os veículos.</li><li><i>3</i>Edite uma personalização.</li><li><i>4</i>Exclua com confirmação.</li></ol></aside></div>
         </section>
         <section class="slide" data-title="Regras de negócio">
@@ -231,9 +234,9 @@ except sqlite3.IntegrityError:
             <tr><td>RN05</td><td>Quilometragem e valor não podem ser negativos.</td></tr>
             <tr><td>RN06</td><td>Personalização é “sim” ou “não”; observações são opcionais.</td></tr>
             <tr><td>RN07</td><td>Editar mantém o ID e revalida os dados e a unicidade da placa.</td></tr>
-            <tr><td>RN08</td><td>Excluir exige confirmação e não é permitido se houver proposta ou pedido vinculado.</td></tr>
-            <tr><td>RN09</td><td>O indicador de valor soma todos os veículos, qualquer que seja o status.</td></tr>
-            <tr><td>RN10</td><td>Os dados de exemplo são inseridos uma vez; excluí-los não os recria.</td></tr>
+            <tr><td>RN08</td><td>DELETE arquiva; não apaga linha nem vínculos. Reserva ativa bloqueia arquivamento.</td></tr>
+            <tr><td>RN09</td><td>Contagem ativa inclui não arquivados, inclusive Vendidos; soma de preço exclui Vendidos. Busca/filtros não mudam indicadores.</td></tr>
+            <tr><td>RN10</td><td>Os dados de exemplo são inseridos uma vez; arquivá-los não os recria.</td></tr>
           </tbody></table></div>
         </section>
         <section class="slide" data-title="Requisitos funcionais">
@@ -244,12 +247,13 @@ except sqlite3.IntegrityError:
             <tr><td>RF02</td><td>Registrar carroceria, tração, combustível, quilometragem e personalização.</td></tr>
             <tr><td>RF03</td><td>Listar veículos com seus principais dados e status.</td></tr>
             <tr><td>RF04</td><td>Editar os dados de um veículo existente.</td></tr>
-            <tr><td>RF05</td><td>Confirmar exclusão; bloquear se houver proposta ou pedido vinculado.</td></tr>
+            <tr><td>RF05</td><td>Arquivar logicamente com autor, data e motivo; bloquear veículo Reservado.</td></tr>
             <tr><td>RF06</td><td>Pesquisar por placa, marca ou modelo e filtrar pelo status.</td></tr>
             <tr><td>RF07</td><td>Mostrar total, disponíveis, personalizados e valor anunciado somado.</td></tr>
             <tr><td>RF08</td><td>Persistir e recuperar cadastros no banco SQLite pela API Python.</td></tr>
             <tr><td>RF09</td><td>Exibir mensagens de sucesso ou erro nas operações do CRUD.</td></tr>
-            <tr><td>RF10</td><td>Oferecer endpoints HTTP para listar, criar, atualizar e excluir veículos.</td></tr><tr><td>RF11</td><td>Restringir painel e rotas administrativas a usuário autenticado com perfil admin.</td></tr>
+            <tr><td>RF10</td><td>Oferecer endpoints HTTP para listar, criar, atualizar e arquivar veículos.</td></tr><tr><td>RF11</td><td>Restringir painel e rotas administrativas a usuário autenticado com perfil admin.</td></tr>
+            <tr><td>RF12</td><td>Consultar ativos/arquivados/todos e detalhe com eventos e venda.</td></tr><tr><td>RF13</td><td>Vender caminhão manualmente para empresa ativa, registrando venda, status e evento.</td></tr>
           </tbody></table></div>
         </section>
         <section class="slide" data-title="Requisitos não funcionais">
@@ -269,8 +273,8 @@ except sqlite3.IntegrityError:
           <div class="slide-label">Contexto de uso</div><h2>O que assumimos <span>e o que fica fora.</span></h2>
           <p class="lead">O módulo FasTruck permite cadastrar e gerenciar veículos, com dados persistidos no banco SQLite.</p>
           <div class="info-grid">
-            <article class="info-card"><h3>Premissas</h3><ul><li>Uma pessoa usa o sistema no computador local.</li><li>O painel é aberto pelo servidor Python, não como arquivo HTML.</li><li>O banco é `data/fasttruck.db`.</li><li>A inicialização cria 13 veículos de demonstração; a exclusão é bloqueada quando propostas ou pedidos dependem deles.</li><li>Personalizações são declaradas pelo administrador, sem verificação externa.</li></ul></article>
-            <article class="info-card"><h3>Restrições</h3><ul><li>A administração exige conta autenticada com perfil admin em /admin; as credenciais iniciais ficam em `data/.admin-access`. A loja pública tem acesso separado.</li><li>Migrações fazem backup automático antes de alterar uma base existente; cópias periódicas para recuperação geral são manuais.</li><li>Sem consulta oficial de placa ou documentação.</li><li>A loja pública permite consultar o catálogo e registrar pedidos; pagamentos são exclusivamente simulados, sem cobrança real.</li><li>Servidor de desenvolvimento local; não configurado para produção.</li></ul></article>
+            <article class="info-card"><h3>Premissas</h3><ul><li>Uma pessoa usa o sistema no computador local.</li><li>O painel é aberto pelo servidor Python, não como arquivo HTML.</li><li>O banco é `data/fasttruck.db`.</li><li>O veículo vendido/arquivado continua em histórico; placa não pode ser reutilizada.</li><li>Personalizações são declaradas pelo administrador, sem verificação externa.</li></ul></article>
+            <article class="info-card"><h3>Restrições</h3><ul><li>A administração exige conta autenticada com perfil admin; as credenciais iniciais ficam em `data/.admin-access`. A loja tem acesso separado.</li><li>Migrações fazem backup automático antes de alterar a base; cópias periódicas são manuais.</li><li>Sem consulta oficial de placa ou integração bancária externa; nenhum PAN ou CVV é coletado.</li><li>A reserva de 15 minutos pertence ao pedido criado no checkout.</li><li>Servidor local, não configurado para produção.</li></ul></article>
           </div>
         </section>
         <section class="slide" data-title="Riscos">
@@ -278,7 +282,7 @@ except sqlite3.IntegrityError:
           <p class="lead">Cada risco tem uma resposta dentro do escopo atual ou um limite claramente comunicado.</p>
           <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Risco</th><th>Resposta nesta etapa</th></tr></thead><tbody>
             <tr><td>Perder ou danificar o arquivo SQLite</td><td>Migrações salvam cópia automática antes da mudança; manter cópias periódicas manuais de `data/fasttruck.db` para recuperação geral.</td></tr>
-            <tr><td>Excluir veículo usado em proposta ou pedido</td><td>A API bloqueia propostas e a chave estrangeira SQLite `ON DELETE RESTRICT` protege pedidos.</td></tr><tr><td>Placa repetida com escrita diferente</td><td>Normalizar e validar a placa; banco também impede duplicidade.</td></tr>
+            <tr><td>Perder histórico ao excluir veículo</td><td>Soft delete mantém linha, placa, vínculos, vendas e eventos; remoção física segue restrita por FK.</td></tr><tr><td>Conflito de checkout</td><td>Reserva de 15 min e venda transacional validam o pedido que possui a reserva.</td></tr><tr><td>Placa repetida com escrita diferente</td><td>Normalizar e validar a placa; banco também impede duplicidade.</td></tr>
             <tr><td>Servidor parado ou banco indisponível</td><td>Interface informa falha de conexão e orienta a iniciar o Python.</td></tr>
             <tr><td>Características ou personalização incorretas</td><td>Informações são declaradas pelo administrador e não verificadas.</td></tr>
             <tr><td>Expor o servidor local na rede</td><td>Executar em `127.0.0.1`; o servidor está configurado para uso local.</td></tr>
@@ -291,12 +295,66 @@ except sqlite3.IntegrityError:
             <article class="uc-card"><h3>UC01 · Cadastrar caminhão</h3><p><b>Pré:</b> administrador autenticado em /admin, servidor iniciado e banco acessível.<br><b>Fluxo:</b> preencher dados → enviar → API valida → SQLite grava → lista e indicadores atualizam.<br><b>Alternativas:</b> placa inválida ou repetida e falha de gravação mostram erro.</p></article>
             <article class="uc-card"><h3>UC02 · Consultar estoque</h3><p><b>Pré:</b> administrador autenticado em /admin.<br><b>Fluxo:</b> abrir painel → carregar lista do banco → pesquisar placa, marca ou modelo → filtrar status.<br><b>Resultado:</b> lista filtrada; indicadores continuam mostrando o total do estoque.</p></article>
             <article class="uc-card"><h3>UC03 · Editar caminhão</h3><p><b>Pré:</b> administrador autenticado e veículo cadastrado.<br><b>Fluxo:</b> abrir edição → alterar campos → revalidar → atualizar a mesma linha e atualizar a tela.<br><b>Alternativa:</b> duplicidade de placa ou erro de conexão não confirma a edição.</p></article>
-            <article class="uc-card"><h3>UC04 · Excluir caminhão</h3><p><b>Pré:</b> administrador autenticado e veículo cadastrado.<br><b>Fluxo:</b> solicitar exclusão → confirmar → API verifica propostas e pedidos → sem vínculos, remove do SQLite → lista e indicadores atualizam.<br><b>Alternativa:</b> cancelar, clicar fora ou pressionar Esc mantém o registro; proposta ou pedido vinculado bloqueia a exclusão.</p></article>
+            <article class="uc-card"><h3>UC04 · Arquivar caminhão</h3><p><b>Pré:</b> administrador autenticado e veículo não Reservado.<br><b>Fluxo:</b> informar motivo → API registra deleted_at/by/reason e evento → veículo deixa ativos, mas continua em histórico.<br><b>Alternativa:</b> reserva ativa bloqueia; linha e placa nunca são removidas.</p></article>
           </div>
         </section>
-        
+        <section class="slide" data-title="Histórico do veículo">
+          <div class="slide-label">Ciclo de vida · administração</div><h2>Um veículo reúne <span>seu histórico.</span></h2>
+          <p class="lead">O estoque diferencia disponibilidade, reserva, venda e arquivamento. O detalhe administrativo inclui eventos e venda mesmo quando o veículo está arquivado.</p>
+          <div class="endpoint"><span class="method">GET</span><code>/api/vehicles?view=active|deleted|all</code><span>·</span><span>GET /api/vehicles/{id}</span></div>
+          <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Etapa</th><th>Registro</th><th>Rastreabilidade</th></tr></thead><tbody>
+            <tr><td>Cadastro / edição</td><td>vehicles + vehicle_events</td><td>created / updated, autor e snapshots.</td></tr>
+            <tr><td>Reserva / liberação</td><td>reserved_order_id + reserved_until</td><td>Evento vinculado ao pedido proprietário.</td></tr>
+            <tr><td>Venda</td><td>vehicle_sales + status Vendido + sold_at</td><td>Evento sold e pedido, na mesma transação.</td></tr>
+            <tr><td>Arquivamento</td><td>deleted_at / deleted_by / deleted_reason</td><td>Soft delete; placa e vínculos permanecem.</td></tr>
+          </tbody></table></div>
+          <div class="example-panel"><div class="example-head"><span>Inserção no histórico · função compartilhada</span><span>src/backend/services/inventory.py · record_event()</span></div><pre><code>conn.execute(
+    "INSERT INTO vehicle_events(id,vehicle_id,action,actor_id,order_id,"
+    "reason,before_json,after_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+    (str(uuid.uuid4()), vehicle_id, action, actor_id, order_id, reason,
+     json.dumps(before) if before is not None else None,
+     json.dumps(after) if after is not None else None, utc_now()),
+)</code></pre></div>
+        </section>
+        <section class="slide" data-title="Reserva e pagamento">
+          <div class="slide-label">Checkout · pedido e pagamento integrados</div><h2>Reserva, confirma e <span>registra a venda.</span></h2>
+          <p class="lead">Pedido novo reserva caminhão por 15 minutos. O cliente escolhe cartão, Pix ou boleto. Aprovação, venda e transição para Vendido ocorrem na mesma transação.</p>
+          <div class="flow summary-flow"><article class="flow-card"><i class="flow-icon">01</i><small>15 min</small><b>Reserva</b><span>Veículo pertence a um único pedido.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon">02</i><small>Automático</small><b>Cartão</b><span>Processa aprovação ou recusa.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon">03</i><small>Automático</small><b>Pix</b><span>Confirma após o processamento.</span></article><div class="arrow">→</div><article class="flow-card"><i class="flow-icon">04</i><small>Automático</small><b>Boleto</b><span>Compensa sem ação administrativa.</span></article></div>
+          <div class="content-grid"><div class="info-card"><h3>Estados de checkout</h3><ul><li>Pedido: Aguardando pagamento → Pagamento aprovado ou Cancelado.</li><li>Pagamento: Pendente / Processando → Aprovado, Recusado ou Cancelado.</li><li>Expiração e cancelamento liberam apenas a reserva dona.</li><li>O administrador acompanha o resultado sem precisar aprová-lo.</li></ul></div><div class="example-panel"><div class="example-head"><span>Venda de checkout · helper compartilhado</span><span>src/backend/services/shop_orders.py</span></div><pre><code>complete_sale(
+    conn, order["vehicle_id"], order["customer_id"],
+    payment["amount_cents"], order_id=order["id"],
+    idempotency_key=payment["idempotency_key"], channel="shop",
+)
+conn.execute(
+    "UPDATE checkout_payments SET status='Aprovado',approved_at=?,updated_at=? WHERE id=?",
+    (now, now, payment["id"]),
+)
+conn.execute(
+    "UPDATE shop_orders SET status='Pagamento aprovado',updated_at=? WHERE id=?",
+    (now, order["id"]),
+)</code></pre></div></div>
+          <p class="example-note">O resultado é calculado pelo servidor. A aplicação local não integra adquirente ou banco e não coleta PAN, CVV ou credenciais bancárias.</p>
+        </section>
+        <section class="slide" data-title="Regras e rastreabilidade">
+          <div class="slide-label">Requisitos integrados · RF / RN / RNF</div><h2>Regras de negócio <span>com rastreabilidade.</span></h2>
+          <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Requisito</th><th>Regra / controle</th><th>Uso principal</th></tr></thead><tbody>
+            <tr><td>RF12 / RN08</td><td>GET filtra active/deleted/all; DELETE arquiva sem apagar e bloqueia Reservado.</td><td>UC04–UC05 · API admin</td></tr>
+            <tr><td>RF13 / RN15</td><td>Venda, Vendido, sold_at e evento são atômicos.</td><td>Venda admin / checkout</td></tr>
+            <tr><td>LOJ-RF19 / RN15</td><td>Reserva condicional de 15 min; expiração libera somente pedido dono.</td><td>LOJ-UC03, LOJ-UC05</td></tr>
+            <tr><td>LOJ-RF09–12 / RN13–14</td><td>Cartão, Pix e boleto avançam automaticamente; recusa permite nova tentativa elegível.</td><td>LOJ-UC04</td></tr>
+            <tr><td>LOJ-RN20 / RNF06</td><td>Pagamento e venda usam a mesma transação SQLite.</td><td>LOJ-UC04 · integridade</td></tr>
+            <tr><td>RNF05 / RNF06</td><td>Dados locais e validações no servidor; eventos transacionais.</td><td>Todos os casos</td></tr>
+          </tbody></table></div>
+          <p class="example-note">A documentação define critérios e comportamento alvo; resultados de validação são registrados separadamente após execução.</p>
+        </section>
+        <section class="slide" data-title="Premissas e casos de uso">
+          <div class="slide-label">Premissas, restrições e riscos</div><h2>Checkout local com <span>limites explícitos.</span></h2>
+          <div class="info-grid"><article class="info-card"><h3>Premissas</h3><ul><li>Empresa de checkout ativa e veículo disponível.</li><li>Relógio e datas guardados em UTC.</li><li>O servidor controla valor e resultado do pagamento.</li><li>Pedido aprovado registra a venda no estoque.</li><li>Venda administrativa pode finalizar Reservado sem pedido dono.</li></ul></article><article class="info-card"><h3>Restrições e riscos</h3><ul><li>Sem integração bancária, PAN/CVV, entrega, frete ou produção pública.</li><li>Expiração libera somente a reserva que pertence ao pedido.</li><li>Conflito entre pedidos bloqueia o segundo checkout.</li><li>Backup pré-migração não substitui cópia operacional.</li></ul></article></div>
+          <div class="uc-grid"><article class="uc-card"><h3>UC05 · Consulta histórica</h3><p><b>Ator:</b> admin.<br><b>Fluxo:</b> filtra ativos/arquivados → abre detalhe → consulta eventos e venda.</p></article><article class="uc-card"><h3>UC06 · Venda administrativa</h3><p><b>Ator:</b> admin.<br><b>Fluxo:</b> escolhe empresa ativa → registra valor/notas → grava venda e evento atomicamente.</p></article><article class="uc-card"><h3>LOJ-UC03/04 · Checkout</h3><p><b>Ator:</b> cliente.<br><b>Fluxo:</b> cria pedido → reserva 15 min → escolhe pagamento → venda e Vendido na aprovação.</p></article><article class="uc-card"><h3>Falha / expiração</h3><p><b>Regra:</b> reserva expirada cancela tentativas pendentes e libera somente o veículo do pedido correspondente.</p></article></div>
+        </section>
+
       </div>
-      <footer class="bottom"><div class="progress"><span id="pageCount">01 / 15</span><span class="bar"><i id="progressBar" style="width:6.67%"></i></span></div><div class="controls"><button id="previous" disabled>← Anterior</button><div class="dots" id="dots" aria-label="Ir para slide"></div><button class="next" id="next">Próximo →</button></div></footer>
+      <footer class="bottom"><div class="progress"><span id="pageCount">01 / 19</span><span class="bar"><i id="progressBar" style="width:5.26%"></i></span></div><div class="controls"><button id="previous" disabled>← Anterior</button><div class="dots" id="dots" aria-label="Ir para slide"></div><button class="next" id="next">Próximo →</button></div></footer>
     </main>
   </div>
   <script>
@@ -305,8 +363,3 @@ except sqlite3.IntegrityError:
   </script>
 </body>
 </html>
-
-
-
-
-

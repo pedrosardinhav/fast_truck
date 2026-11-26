@@ -49,7 +49,7 @@
   function renderNav(active) {
     const nav = document.getElementById("moduleNav"); if (!nav) return;
     nav.classList.add("module-nav"); nav.setAttribute("aria-label", "Módulos FasTruck");
-    nav.innerHTML = [["veiculos", "/admin", "Veículos"], ["clientes", "/clientes.html", "Clientes PJ"], ["propostas", "/propostas.html", "Propostas"], ["pagamentos", "/pagamentos.html", "Pagamentos"], ["pedidos", "/pedidos.html", "Pedidos da loja"], ["loja", "/", "Ver loja"]].map(([key, url, label]) => `<a href="${url}" ${key === active ? 'class="active" aria-current="page"' : ""}>${label}</a>`).join("") + '<button class="secondary" type="button" id="adminLogout">Sair</button>';
+    nav.innerHTML = [["veiculos", "/admin", "Veículos"], ["clientes", "/clientes.html", "Clientes PJ"], ["pedidos", "/pedidos.html", "Pedidos da loja"], ["loja", "/", "Ver loja"]].map(([key, url, label]) => `<a href="${url}" ${key === active ? 'class="active" aria-current="page"' : ""}>${label}</a>`).join("") + '<button class="secondary" type="button" id="adminLogout">Sair</button>';
     document.getElementById("adminLogout").addEventListener("click", async () => {
       try { await request("/api/shop/logout", { method: "POST", body: {} }); location.assign("/"); }
       catch (error) { notify(error.message, true); }

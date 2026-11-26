@@ -162,29 +162,55 @@ def session(raw_token):
         return {key: row[key] for key in ("id", "email", "role", "customer_id", "csrf_token")}
 
 
+def _write_admin_access(path, email, password):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.fchmod(descriptor, 0o600)
+    except AttributeError:
+        pass
+    with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+        stream.write(f"email={email}\npassword={password}\n")
+
+
 def ensure_admin():
-    """Cria a conta admin inicial uma única vez e salva as credenciais locais."""
+    """Garante uma conta administrativa e seu acesso local recuperável."""
     credential_path = database_path().parent / ".admin-access"
-    created = None
     with transaction() as conn:
-        existing = conn.execute("SELECT id FROM accounts WHERE role='admin' LIMIT 1").fetchone()
-        if existing:
+        existing = conn.execute(
+            "SELECT id, email FROM accounts WHERE role='admin' LIMIT 1"
+        ).fetchone()
+        if existing and credential_path.is_file():
             return None
-        email = "admin@fastruck.local"
+        email = existing["email"] if existing else "admin@fastruck.local"
         password = secrets.token_urlsafe(12)
-        account_id = str(uuid.uuid4())
-        conn.execute(
-            "INSERT INTO accounts (id, customer_id, email, password_hash, role, created_at) "
-            "VALUES (?, NULL, ?, ?, 'admin', ?)",
-            (account_id, email, _hash_password(password), utc_now()),
+        if existing:
+            conn.execute(
+                "UPDATE accounts SET password_hash=? WHERE id=?",
+                (_hash_password(password), existing["id"]),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO accounts (id, customer_id, email, password_hash, role, created_at) "
+                "VALUES (?, NULL, ?, ?, 'admin', ?)",
+                (str(uuid.uuid4()), email, _hash_password(password), utc_now()),
+            )
+    _write_admin_access(credential_path, email, password)
+    return {"email": email}
+
+
+def admin_access():
+    """Lê o acesso administrativo gerado para esta instalação local."""
+    credential_path = database_path().parent / ".admin-access"
+    try:
+        values = dict(
+            line.split("=", 1)
+            for line in credential_path.read_text(encoding="utf-8").splitlines()
+            if "=" in line
         )
-        created = (email, password)
-        credential_path.parent.mkdir(parents=True, exist_ok=True)
-        descriptor = os.open(credential_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        try:
-            os.fchmod(descriptor, 0o600)
-        except AttributeError:
-            pass
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(f"email={created[0]}\npassword={created[1]}\n")
-    return {"email": created[0]}
+        email, password = values["email"].strip(), values["password"].strip()
+    except (OSError, KeyError, ValueError):
+        raise ApiError(503, "O acesso administrativo ainda não foi gerado. Reinicie o servidor.") from None
+    if not email or not password:
+        raise ApiError(503, "O acesso administrativo está incompleto. Reinicie o servidor.")
+    return {"email": email, "password": password}

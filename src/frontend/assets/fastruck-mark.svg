@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 64" role="img" aria-labelledby="title desc">
+  <title id="title">FasTruck</title>
+  <desc id="desc">Símbolo de caminhão com carroceria em forma de F</desc>
+  <path d="M3 20h8M1 28h10" stroke="#64a9dd" stroke-width="3" stroke-linecap="round"/>
+  <path fill="#0a2342" d="M13 10h34v11H27v7h17v10H27v15H13z"/>
+  <path fill="#347eb8" d="M42 27h13l13 12v13H42z"/>
+  <path fill="#b9dbf2" d="M51 31h3l9 8H51z"/>
+  <path fill="#f0b64c" d="M65 43h5v7h-5z"/>
+  <path d="M28 48h14" stroke="#0a2342" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="24" cy="53" r="8" fill="#07182c"/>
+  <circle cx="24" cy="53" r="3.2" fill="#a9c9e1"/>
+  <circle cx="56" cy="53" r="8" fill="#07182c"/>
+  <circle cx="56" cy="53" r="3.2" fill="#a9c9e1"/>
+</svg>

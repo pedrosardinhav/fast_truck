@@ -190,7 +190,7 @@ class FasTruckHandler(BaseHTTPRequestHandler):
             raise ValueError("O conteúdo enviado não é um JSON válido.") from None
 
     def do_GET(self) -> None:
-        if self.route_access("GET") or self.route_new_modules("GET"):
+        if self.route_access("GET") or self.route_inventory("GET") or self.route_new_modules("GET"):
             return
         path = urlparse(self.path).path
         if path == "/api/vehicles":
@@ -217,15 +217,18 @@ class FasTruckHandler(BaseHTTPRequestHandler):
         self.send_json(404, {"error": "Página não encontrada."})
 
     def do_POST(self) -> None:
-        if self.route_access("POST") or self.route_new_modules("POST"):
+        if self.route_access("POST") or self.route_inventory("POST") or self.route_new_modules("POST"):
             return
         if urlparse(self.path).path != "/api/vehicles":
             self.send_json(404, {"error": "Rota não encontrada."})
             return
         try:
             vehicle = validate_vehicle(self.read_json())
+            if vehicle["status"] == "Vendido":
+                raise ApiError(409, "Cadastre o veículo e use Registrar venda para registrar comprador e valor.")
             vehicle["id"] = str(uuid.uuid4())
             with transaction() as conn:
+                from services.inventory import record_event
                 conn.execute(
                     """INSERT INTO vehicles
                     (id, plate, brand, model, year, color, body, axles, fuel, km,
@@ -234,7 +237,10 @@ class FasTruckHandler(BaseHTTPRequestHandler):
                             :axles, :fuel, :km, :price, :customized, :notes, :status)""",
                     vehicle,
                 )
+                record_event(conn, vehicle["id"], "created", actor_id=self.require_user(admin=True)["id"], after=vehicle)
             self.send_json(201, vehicle)
+        except ApiError as exc:
+            self.send_json(exc.status, {"error": exc.message})
         except ValueError as exc:
             self.send_json(400, {"error": str(exc)})
         except sqlite3.IntegrityError as exc:
@@ -252,6 +258,19 @@ class FasTruckHandler(BaseHTTPRequestHandler):
             vehicle = validate_vehicle(self.read_json())
             vehicle["id"] = vehicle_id
             with transaction() as conn:
+                from services.inventory import _advance_checkout, record_event
+                _advance_checkout(conn)
+                previous = conn.execute("SELECT * FROM vehicles WHERE id=?", (vehicle_id,)).fetchone()
+                if previous is None:
+                    raise ApiError(404, "Caminhão não encontrado.")
+                if previous["deleted_at"]:
+                    raise ApiError(409, "Um veículo excluído pode ser consultado, mas não editado.")
+                if previous["reserved_order_id"]:
+                    raise ApiError(409, "O veículo está reservado por um pedido. Aguarde o pagamento ou cancele o pedido.")
+                if vehicle["status"] == "Vendido" and previous["status"] != "Vendido":
+                    raise ApiError(409, "Use Registrar venda para informar comprador e valor.")
+                if previous["status"] == "Vendido" and vehicle["status"] != "Vendido":
+                    raise ApiError(409, "Um veículo vendido não pode voltar ao estoque disponível.")
                 cursor = conn.execute(
                     """UPDATE vehicles SET
                     plate=:plate, brand=:brand, model=:model, year=:year,
@@ -260,10 +279,13 @@ class FasTruckHandler(BaseHTTPRequestHandler):
                     status=:status WHERE id=:id""",
                     vehicle,
                 )
+                record_event(conn, vehicle_id, "updated", actor_id=self.require_user(admin=True)["id"], before=dict(previous), after=vehicle)
                 if cursor.rowcount == 0:
                     self.send_json(404, {"error": "Caminhão não encontrado."})
                     return
             self.send_json(200, vehicle)
+        except ApiError as exc:
+            self.send_json(exc.status, {"error": exc.message})
         except ValueError as exc:
             self.send_json(400, {"error": str(exc)})
         except sqlite3.IntegrityError as exc:
@@ -271,25 +293,33 @@ class FasTruckHandler(BaseHTTPRequestHandler):
             self.send_json(409, {"error": message})
 
     def do_DELETE(self) -> None:
-        if self.route_access("DELETE") or self.route_new_modules("DELETE"):
+        if self.route_access("DELETE") or self.route_inventory("DELETE") or self.route_new_modules("DELETE"):
             return
-        vehicle_id = self.vehicle_id_from_path()
-        if not vehicle_id:
-            self.send_json(404, {"error": "Rota não encontrada."})
-            return
+        self.send_json(404, {"error": "Rota não encontrada."})
+
+    def route_inventory(self, method):
+        path = unquote(urlparse(self.path).path).rstrip("/")
+        if not (path == "/api/vehicles" or path.startswith("/api/vehicles/")):
+            return False
+        if method not in {"GET", "DELETE"} and not (method == "POST" and path.endswith("/sell")):
+            return False
         try:
-            with transaction() as conn:
-                if conn.execute("SELECT 1 FROM proposals WHERE vehicle_id=? LIMIT 1", (vehicle_id,)).fetchone():
-                    self.send_json(409, {"error": "Caminhão com propostas vinculadas não pode ser excluído."})
-                    return
-                cursor = conn.execute("DELETE FROM vehicles WHERE id = ?", (vehicle_id,))
+            from services import inventory
+            user = self.require_user(admin=True)
+            payload = self.read_json(exact_numbers=True) if method in {"POST", "DELETE"} and self.headers.get("Content-Length", "0") != "0" else {}
+            result = inventory.handle_request(method, self.path, payload, user)
+            if result is None:
+                raise ApiError(404, "Rota de veículos não encontrada.")
+            self.send_json(*result)
+        except ApiError as exc:
+            self.send_json(exc.status, {"error": exc.message})
+        except ValueError as exc:
+            self.send_json(400, {"error": str(exc)})
         except sqlite3.IntegrityError:
-            self.send_json(409, {"error": "Há registros vinculados a este caminhão."})
-            return
-        if cursor.rowcount == 0:
-            self.send_json(404, {"error": "Caminhão não encontrado."})
-            return
-        self.send_json(200, {"message": "Caminhão removido."})
+            self.send_json(409, {"error": "A operação conflita com o histórico ou a disponibilidade do veículo."})
+        except sqlite3.OperationalError:
+            self.send_json(503, {"error": "Banco temporariamente indisponível. Tente novamente."})
+        return True
 
     def cookie_token(self):
         try:
@@ -359,6 +389,9 @@ class FasTruckHandler(BaseHTTPRequestHandler):
                 user = {k: current[k] for k in ("id", "email", "role", "customer_id")} if current else None
                 self.send_json(200, {"user": user, "csrf_token": current["csrf_token"] if current else None})
                 return
+            if method == "GET" and path == "/api/shop/admin-access":
+                self.send_json(200, shop_auth.admin_access())
+                return
             payload = self.read_json(exact_numbers=True) if method == "POST" else None
             if method == "POST":
                 self.check_origin()
@@ -375,7 +408,7 @@ class FasTruckHandler(BaseHTTPRequestHandler):
                                {"Set-Cookie": f"fastruck_session={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800"})
                 return
             user = None
-            public = method == "GET" and path in {"/api/shop/catalog", "/api/shop/customizations"}
+            public = method == "GET" and path in {"/api/shop/catalog", "/api/shop/customizations", "/api/shop/checkout-options"}
             if not public:
                 user = self.require_user()
                 if method == "POST":
@@ -402,17 +435,17 @@ class FasTruckHandler(BaseHTTPRequestHandler):
     def route_new_modules(self, method):
         url = urlparse(self.path)
         path = unquote(url.path).rstrip("/")
-        if not any(path == p or path.startswith(p + "/") for p in ("/api/customers", "/api/cnpj", "/api/proposals", "/api/payments")):
+        # Propostas e seus pagamentos foram substituídos pelo checkout. As
+        # tabelas e migrações antigas continuam no banco apenas como histórico.
+        if not any(path == p or path.startswith(p + "/") for p in ("/api/customers", "/api/cnpj")):
             return False
         try:
-            from services import customers, proposals, payments
+            from services import customers
             payload = self.read_json(exact_numbers=True) if method in {"POST", "PUT"} else None
-            module_path = path + ("?" + url.query if url.query and path == "/api/payments" else "")
-            for module in (customers, proposals, payments):
-                result = module.handle_request(method, module_path, payload)
-                if result is not None:
-                    self.send_json(*result)
-                    return True
+            result = customers.handle_request(method, path, payload)
+            if result is not None:
+                self.send_json(*result)
+                return True
             self.send_json(404, {"error": "Rota não encontrada."})
         except ApiError as exc:
             self.send_json(exc.status, {"error": exc.message})
@@ -453,8 +486,14 @@ class FasTruckHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     initialize_database()
+    from demo_data import seed_demo_data
     from services.shop_auth import ensure_admin
+    seed_demo_data()
     ensure_admin()
+    # Resolve pagamentos vencidos antes de liberar reservas expiradas.
+    from services.shop_orders import advance_payments
+    with transaction() as conn:
+        advance_payments(conn)
     server = ThreadingHTTPServer((HOST, PORT), FasTruckHandler)
     print(f"FasTruck disponível em http://{HOST}:{PORT}")
     print(f"Banco SQLite: {database_path()}")

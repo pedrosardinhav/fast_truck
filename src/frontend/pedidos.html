@@ -1,15 +1,48 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pedidos da loja · FasTruck</title><link rel="stylesheet" href="/css/shared.css"></head>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#142b4a"><title>Pedidos da loja · FasTruck</title>
+  <link rel="stylesheet" href="/css/shared.css">
+  <style>
+    body{font-size:16px}.orders-heading{align-items:center}.orders-heading .secondary{min-width:108px}
+    .order-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .orders-panel-head{padding:20px 22px;align-items:flex-end}.orders-panel-head h2{font-size:18px}
+    .orders-count{display:inline-flex;align-items:center;min-height:32px;padding:6px 12px;border-radius:999px;background:#edf3fa;color:#355f8e;font-size:13px;font-weight:700;white-space:nowrap}
+    .orders-toolbar{padding:0 22px 18px}.orders-toolbar .search{max-width:680px}.field>span{display:block;font-size:14px;font-weight:600;color:#405771;margin-bottom:6px}
+    .orders-toolbar input{font-size:16px;min-height:44px;background:#fff}.orders-table td{font-size:14px}.orders-table td small{font-size:12px;margin-top:3px}.orders-table td:last-child{text-align:right}
+    .order-detail{margin-top:24px;padding:24px}.order-detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+    .order-detail-head h2{font-size:24px;margin:2px 0 5px}.order-detail-total{text-align:right}.order-detail-total strong{display:block;font-size:24px;color:var(--navy)}
+    .order-detail-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:24px;margin-top:22px}
+    .order-section{min-width:0}.order-section h3{font-size:15px;margin:0 0 12px}.order-info{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .info-card{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe}.info-card small{display:block;color:var(--muted);font-size:12px;margin-bottom:3px}.info-card strong{display:block;overflow-wrap:anywhere}
+    .item-list,.payment-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}.item-list li,.payment-list li{padding:13px 14px;border:1px solid var(--line);border-radius:11px;background:#fff}
+    .item-row,.payment-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.payment-meta{color:var(--muted);font-size:12px;margin-top:5px;overflow-wrap:anywhere}
+    .order-notes{margin-top:14px;padding:13px 14px;background:#f5f8fc;border-radius:11px;color:#405771}.orders-empty{padding:48px 20px;text-align:center;color:var(--muted)}
+    @media(max-width:900px){.order-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.order-detail-grid{grid-template-columns:1fr}}
+    @media(max-width:600px){.orders-heading .secondary{width:100%}.orders-panel-head{align-items:flex-start;flex-direction:column;padding:18px 16px}.orders-toolbar{padding:0 16px 16px}.orders-count{align-self:flex-start}.order-detail{padding:18px 16px}.order-detail-head{flex-direction:column}.order-detail-total{text-align:left}.order-info{grid-template-columns:1fr}.item-row,.payment-row{gap:8px}.orders-table th:nth-child(2),.orders-table td:nth-child(2),.orders-table th:nth-child(5),.orders-table td:nth-child(5){display:none}.orders-table td:first-child,.orders-table th:first-child{padding-left:16px}.orders-table td,.orders-table th{padding-inline:10px}.orders-table button{min-height:38px}}
+    @media print{#orderDetail{display:block!important}.order-stats,.orders-list-panel{display:none!important}}
+  </style>
+</head>
 <body>
   <header class="topbar"><a class="brand" href="/admin">Fas<span>Truck</span></a><span>Administração</span></header>
   <nav id="moduleNav"></nav>
   <main class="wrap">
-    <div class="heading"><div><div class="eyebrow">E-commerce · empresas</div><h1>Pedidos da loja</h1><p class="muted">Acompanhe os pedidos e as tentativas de pagamento feitas pelos clientes.</p></div><button class="secondary" id="refreshOrders" type="button">Atualizar</button></div>
-    <label class="field"><span>Pesquisar pedido, empresa ou placa</span><input id="searchOrders" type="search" placeholder="Número, CNPJ, empresa ou placa"></label>
-    <p class="notice">Os pagamentos são simulados e não movimentam dinheiro. Pedidos não reservam caminhões automaticamente.</p>
-    <section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Pedido</th><th>Empresa</th><th>Caminhão</th><th>Status</th><th>Total</th><th></th></tr></thead><tbody id="orderRows"></tbody></table></div><p id="orderStatus" role="status">Carregando pedidos…</p></section>
-    <section class="panel" id="orderDetail" hidden style="margin-top:24px"></section>
+    <div class="heading orders-heading"><div><div class="eyebrow">E-commerce · empresas</div><h1>Pedidos da loja</h1><p class="muted">Acompanhe compras, pagamentos e vendas em um só lugar.</p></div><button class="secondary" id="refreshOrders" type="button">Atualizar</button></div>
+    <section class="stats order-stats" aria-label="Resumo de pedidos">
+      <article class="stat"><span>Total de pedidos</span><strong id="statTotal">0</strong></article>
+      <article class="stat"><span>Aguardando pagamento</span><strong id="statPending">0</strong></article>
+      <article class="stat"><span>Pagamentos aprovados</span><strong id="statApproved">0</strong></article>
+      <article class="stat"><span>Cancelados</span><strong id="statCanceled">0</strong></article>
+    </section>
+    <section class="panel orders-list-panel">
+      <div class="panel-head orders-panel-head"><div><div class="eyebrow">Histórico comercial</div><h2>Todos os pedidos</h2></div><span class="orders-count" id="orderStatus" role="status" aria-live="polite">Carregando…</span></div>
+      <div class="toolbar orders-toolbar"><label class="search field"><span>Pesquisar pedido, empresa ou placa</span><input id="searchOrders" type="search" placeholder="Número, CNPJ, empresa ou placa"></label></div>
+      <div class="table-wrap"><table class="table orders-table"><thead><tr><th>Pedido</th><th>Empresa</th><th>Caminhão</th><th>Status</th><th>Total</th><th><span class="print-only">Ação</span></th></tr></thead><tbody id="orderRows"></tbody></table></div>
+      <div id="ordersEmpty" class="orders-empty" hidden>Nenhum pedido encontrado para esta busca.</div>
+    </section>
+    <section class="panel order-detail" id="orderDetail" hidden></section>
   </main>
   <script src="/js/shared.js"></script><script src="/js/pedidos.js"></script>
-</body></html>
+</body>
+</html>

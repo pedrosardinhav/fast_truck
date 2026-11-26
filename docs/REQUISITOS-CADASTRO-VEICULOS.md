@@ -1,19 +1,19 @@
 # FasTruck — Cadastro administrativo de veículos
 
-Data: 16/11/2026. Documento do estoque administrativo. A loja e os pedidos de clientes são descritos em [Área do cliente](REQUISITOS-AREA-CLIENTE.md); propostas e pagamentos administrativos têm requisitos próprios.
+Data: 25/11/2026. Documento do estoque administrativo e do ciclo de vida integrado. A loja, os pedidos e o pagamento são descritos em [Área do cliente](REQUISITOS-AREA-CLIENTE.md).
 
 ## 1. Objetivo e escopo
 
 Cadastrar e gerenciar caminhões da FasTruck, incluindo características, preço anunciado, situação do estoque e observações de personalização. O painel fica em `/admin` e exige conta de administrador; a raiz `/` é a loja pública e mostra apenas veículos Disponíveis.
 
-HTML, CSS e JavaScript compõem a interface; Python e SQLite implementam a API e a persistência. Este módulo mantém o estoque; pedidos e pagamentos simulados não reservam ou vendem caminhões automaticamente.
+HTML, CSS e JavaScript compõem a interface; Python e SQLite implementam a API e a persistência. O estoque mantém histórico por exclusão lógica, controla reservas temporárias do checkout e registra venda administrativa ou da loja.
 
 ## 2. Premissas e dados
 
 - O administrador inicia `python src/backend/app.py` na raiz do projeto, acessa o servidor local e entra com suas credenciais.
-- A primeira execução do servidor cria o acesso administrativo em `data/.admin-access`, ignorado pelo Git.
+- A primeira execução do servidor cria o acesso administrativo em `data/.admin-access`, ignorado pelo Git; o botão **Admin** no cabeçalho permite consultá-lo e preencher o login local.
 - A base padrão é `data/fasttruck.db`, criada localmente e ignorada pelo Git.
-- Uma base nova recebe 13 caminhões de exemplo; as duas cargas são aplicadas uma vez e não recriam veículos excluídos.
+- Uma base nova recebe 13 caminhões de exemplo; as duas cargas são aplicadas uma vez e não recriam veículos excluídos. Sete empresas acadêmicas são carregadas por `src/backend/demo_data.py` para viabilizar consulta e compra.
 - O administrador declara as características e a disponibilidade; o sistema não verifica documentação, procedência ou estado mecânico.
 - O servidor escuta em `127.0.0.1:8000`; outras pessoas executam sua própria cópia do projeto.
 
@@ -38,13 +38,17 @@ HTML, CSS e JavaScript compõem a interface; Python e SQLite implementam a API e
 | RF02 | Registrar carroceria, tração, combustível, quilometragem e informações de personalização. |
 | RF03 | Listar veículos com identificação, placa, ano, personalização, status e preço. |
 | RF04 | Editar veículo existente preservando o identificador. |
-| RF05 | Confirmar exclusão na interface e rejeitá-la se houver proposta ou pedido vinculado. |
+| RF05 | Arquivar caminhão por exclusão lógica, registrando data, administrador e motivo; bloquear arquivamento enquanto estiver Reservado. |
 | RF06 | Pesquisar por placa, marca ou modelo e filtrar por status na interface. |
-| RF07 | Mostrar total de veículos, disponíveis, personalizados e soma do valor anunciado. |
+| RF07 | Mostrar cadastros ativos (`deleted_at IS NULL`), disponíveis e personalizados; somar valores anunciados exceto os Vendidos. Indicadores ignoram busca/filtros da lista. |
 | RF08 | Persistir e recuperar os cadastros no SQLite por meio da API Python. |
 | RF09 | Mostrar mensagens de sucesso ou erro nas operações. |
-| RF10 | Disponibilizar endpoints autenticados para listar, criar, atualizar e excluir veículos. |
+| RF10 | Disponibilizar endpoints autenticados para listar, criar, atualizar e arquivar veículos. |
 | RF11 | Restringir painel e operações administrativas a contas autenticadas com papel de administrador. |
+| RF12 | Consultar estoque ativo, arquivado ou completo; consultar detalhe com eventos e venda vinculada. |
+| RF13 | Registrar eventos de criação, edição, arquivamento, reserva, liberação e venda com snapshots antes/depois quando aplicável. |
+| RF14 | Registrar venda administrativa para empresa ativa, com valor informado ou preço anunciado, observações e chave UUID opcional. |
+| RF15 | Preservar veículos vendidos e arquivados para consulta; manter placas únicas inclusive no histórico. |
 
 ## 4. Regras de negócio
 
@@ -57,10 +61,15 @@ HTML, CSS e JavaScript compõem a interface; Python e SQLite implementam a API e
 | RN05 | Quilometragem convertida para inteiro e valor anunciado não podem ser negativos; preço precisa ser finito. |
 | RN06 | Personalização só aceita `sim` ou `nao`; observações são opcionais. |
 | RN07 | Atualização mantém ID e valida novamente campos e unicidade da placa. |
-| RN08 | Exclusão depende de confirmação e ausência de qualquer proposta ou pedido vinculado, inclusive cancelados. A API/SQLite bloqueiam vínculos existentes. |
-| RN09 | Indicadores representam todo o estoque, independentemente da busca/filtro; a soma anunciada inclui todos os status. |
+| RN08 | `DELETE /api/vehicles/{id}` arquiva o registro: define `deleted_at`, `deleted_by` e `deleted_reason`, sem apagar linha, placa, eventos, pedidos ou vendas. |
+| RN09 | Indicadores contam todos os cadastros não arquivados, inclusive Vendidos, sem considerar busca/filtros. A soma anunciada inclui apenas veículos ativos não Vendidos. |
 | RN10 | Cargas iniciais usam metadados para execução única; não reinserem registros removidos pelo administrador. |
-| RN11 | Alterações no estoque não reescrevem propostas enviadas ou pedidos já criados; propostas, pedidos e simulações não alteram automaticamente preço, personalizações ou status do caminhão. |
+| RN11 | Arquivamento é bloqueado para veículo Reservado; veículo Vendido pode ser arquivado, mas permanece consultável em `deleted`/`all`. |
+| RN12 | Reserva de checkout pertence a um pedido e expira em 15 minutos; expiração cancela pedido/tentativas ativas e libera somente a reserva daquele pedido. |
+| RN13 | Venda exige empresa ativa e veículo não arquivado. Checkout só vende Reserva cujo pedido é o proprietário; venda administrativa também pode concluir veículo com status Reservado quando `reserved_order_id IS NULL`, sem tomar reserva pertencente a pedido. |
+| RN14 | Vínculos e histórico comercial não são apagados. Alterações no cadastro não reescrevem snapshots existentes. |
+| RN15 | Concluir venda atualiza `vehicles.status='Vendido'`, grava `sold_at`, `vehicle_sales` e evento na mesma transação. |
+| RN16 | Placa continua única após arquivamento; recadastrar placa histórica não é permitido. |
 
 ## 5. Requisitos não funcionais
 
@@ -76,11 +85,11 @@ HTML, CSS e JavaScript compõem a interface; Python e SQLite implementam a API e
 
 ## 6. Restrições
 
-- Operação local; sem implantação pública, sincronização entre instalações ou preparação de produção.
+- Operação local; sem implantação pública, sincronização entre instalações ou preparação de produção. O atalho de credenciais administrativas não deve ser publicado na internet.
 - A existência de login não comprova titularidade do veículo ou dados empresariais.
 - Sem consulta oficial de placa, documentação, procedência, valor de mercado ou especificações mecânicas.
-- Sem upload de fotos, catálogo de acessórios editável ou reserva automática de caminhão nesta etapa.
-- Loja, contas, propostas e pagamentos simulados pertencem a módulos relacionados; nenhuma parte processa dinheiro real.
+- Sem upload de fotos, consulta oficial de placa ou integração de pagamento real.
+- Reserva pertence ao checkout da loja; apenas a venda administrativa pode concluir diretamente um veículo reservado sem pedido proprietário.
 - Não há cópias periódicas agendadas; a cópia de migração não substitui backup operacional regular.
 
 ## 7. Riscos e respostas
@@ -93,7 +102,9 @@ HTML, CSS e JavaScript compõem a interface; Python e SQLite implementam a API e
 | Personalização ou características incorretas | Informação declarada pelo administrador, sem verificação externa. |
 | Acesso indevido ao estoque | Exigir papel admin na API; manter servidor em loopback, sem exposição pública. |
 | Erro ao gravar | Usar transação e informar falha sem confirmar a operação. |
-| Excluir histórico comercial por remover caminhão | Bloquear exclusão por vínculo com proposta ou pedido; conservar snapshots históricos. |
+| Perder histórico comercial por remover caminhão | Arquivamento lógico conserva linha, placa, vínculos, eventos e venda; FK continua restringindo remoção física. |
+| Duas compras disputarem o mesmo veículo | Reserva condicional transacional, expiração UTC e venda atômica vinculada ao pedido reservador. |
+| Vendedor arquivar veículo reservado | API rejeita arquivamento enquanto houver reserva ativa. |
 
 ## 8. Casos de uso
 
@@ -109,11 +120,23 @@ Todos os casos administrativos exigem servidor/banco disponíveis e sessão com 
 
 ### UC03 — Editar caminhão
 
-**Ator:** administrador. **Pré:** veículo existe. **Fluxo:** aciona editar → formulário recebe valores atuais → altera e salva → API revalida e atualiza mesmo ID → lista e indicadores atualizam. **Alternativas:** dados rejeitados, placa duplicada ou falha de persistência não confirmam alteração. **Pós-condição:** estoque atualizado; propostas/pedidos históricos não são reescritos.
+**Ator:** administrador. **Pré:** veículo existe. **Fluxo:** aciona editar → formulário recebe valores atuais → altera e salva → API revalida e atualiza mesmo ID → lista e indicadores atualizam. **Alternativas:** dados rejeitados, placa duplicada ou falha de persistência não confirmam alteração. **Pós-condição:** estoque atualizado; pedidos históricos não são reescritos.
 
-### UC04 — Excluir caminhão
+### UC04 — Arquivar caminhão
 
-**Ator:** administrador. **Pré:** veículo existe e não possui proposta/pedido vinculado. **Fluxo:** aciona excluir → interface pede confirmação → API remove pelo ID → lista/indicadores atualizam. **Alternativas:** Manter veículo, clique fora ou Esc encerram o diálogo sem excluir; vínculo com proposta/pedido faz a API rejeitar exclusão e manter o registro; ID inexistente retorna não encontrado. **Pós-condição:** apenas veículo elegível e confirmado é removido.
+**Ator:** administrador. **Pré:** veículo existe e não está Reservado. **Fluxo:** informa motivo (mínimo 3, máximo 500; vazio usa motivo padrão) → confirma → API marca `deleted_at`, `deleted_by`, `deleted_reason` e registra evento → sai da visão ativa, mas continua em consultas `deleted` e `all`. **Alternativas:** reserva ativa gera conflito; ID inexistente retorna não encontrado. **Pós-condição:** registro permanece íntegro no banco e sua placa continua ocupada.
+
+### UC05 — Consultar histórico do veículo
+
+**Ator:** administrador. **Fluxo:** lista `GET /api/vehicles?view=active|deleted|all` (padrão `active`) → abre `GET /api/vehicles/{id}` → recebe histórico de eventos e venda, inclusive para arquivados. **Pós-condição:** consulta não altera o histórico, exceto liberação de reservas vencidas processada na transação da listagem.
+
+### UC06 — Registrar venda administrativa
+
+**Ator:** administrador. **Pré:** empresa ativa e veículo não arquivado nem vendido; veículo Reservado sem `reserved_order_id` pode ser vendido manualmente, mas a reserva de checkout de outro pedido não pode ser tomada. **Fluxo:** envia `customer_id`, `amount` opcional, `notes` e `idempotency_key` UUID opcional → API valida → grava venda, status Vendido, `sold_at` e evento atomicamente. Sem valor usa o preço anunciado convertido a centavos. **Alternativas:** empresa inativa, venda duplicada, reserva de outro pedido ou dado inválido gera conflito/erro sem gravação parcial. **Pós-condição:** veículo vendido com número `VEN-...` e histórico consultável.
+
+### UC07 — Comprar na loja e reservar
+
+**Ator:** cliente autenticado. **Fluxo:** cria pedido de caminhão disponível → veículo fica Reservado para o pedido por 15 minutos → escolhe cartão, Pix ou boleto → o servidor processa automaticamente → aprovação, venda e mudança para Vendido ocorrem juntas. **Alternativas:** recusa permite nova tentativa; expiração ou cancelamento libera somente a reserva do pedido proprietário. O processamento é interno ao projeto e não coleta PAN/CVV ou credenciais bancárias.
 
 ## 9. Rastreabilidade
 
@@ -122,18 +145,23 @@ Todos os casos administrativos exigem servidor/banco disponíveis e sessão com 
 | UC01 | RF01, RF02, RF08–RF11; RN01–RN06, RN10; RNF03, RNF04, RNF06 |
 | UC02 | RF03, RF06, RF07, RF08, RF10, RF11; RN09; RNF01, RNF02, RNF07 |
 | UC03 | RF04, RF08–RF11; RN02, RN07, RN11; RNF05, RNF06 |
-| UC04 | RF05, RF08–RF11; RN08, RN11; RNF05, RNF06 |
+| UC04 | RF05, RF08–RF13, RF15; RN08, RN11, RN14, RN16; RNF05, RNF06 |
+| UC05 | RF12, RF13, RF15; RN08, RN14; RNF05, RNF06 |
+| UC06 | RF14–RF15; RN11, RN13–RN16; RNF05–RNF06 |
+| UC07 | RF12–RF15; RN12–RN16; RNF05–RNF06 |
 
 ## 10. Contrato da API e critérios de aceite
 
 | Método e rota | Finalidade |
 |---|---|
-| `GET /api/vehicles` | Listar todos os veículos para a administração. |
+| `GET /api/vehicles?view=active\|deleted\|all` | Listar veículos; omitir `view` retorna `active`. |
 | `POST /api/vehicles` | Criar veículo. |
 | `PUT /api/vehicles/{id}` | Atualizar veículo. |
-| `DELETE /api/vehicles/{id}` | Excluir veículo sem vínculos. |
+| `DELETE /api/vehicles/{id}` | Arquivar (soft delete); payload opcional `{ "reason": "..." }`. |
+| `GET /api/vehicles/{id}` | Detalhar inclusive arquivados, eventos e venda. |
+| `POST /api/vehicles/{id}/sell` | Venda administrativa; `customer_id`, `amount` opcional, `notes`, `idempotency_key` opcional. |
 | `GET /api/shop/catalog` | Catálogo público somente de veículos Disponíveis. |
 
-As quatro rotas administrativas exigem cookie de sessão admin; mutações exigem `X-CSRF-Token` obtido em `GET /api/shop/session`. Respostas incluem 401 sem sessão, 403 para papel ou CSRF/origem recusados, 400 para dados inválidos, 404 para ID inexistente e 409 para duplicidade/vínculo. A página administrativa redireciona visitante para entrar.
+As rotas administrativas exigem cookie de sessão admin; mutações exigem `X-CSRF-Token` obtido em `GET /api/shop/session`. Respostas incluem 401 sem sessão, 403 para papel ou CSRF/origem recusados, 400 para dados inválidos, 404 para ID inexistente e 409 para duplicidade/vínculo. A página administrativa redireciona visitante para entrar.
 
-Critérios de aceite: criar/editar/consultar/excluir sem vínculo; rejeitar placa duplicada e preço negativo; manter dados após reinício; bloquear cliente comum na administração; preservar veículo vinculado a proposta ou pedido; manter snapshots e estoque sem alterações automáticas por simulação. Esses critérios são expectativas, não uma declaração de execução completa. Consulte o [registro de validação](VALIDACAO-MODULOS.md).
+Critérios de aceite: criar/editar/listar e arquivar sem apagar; rejeitar placa duplicada/preço negativo; permitir consultas históricas; bloquear arquivamento reservado; reservar por 15 minutos, liberar apenas reserva proprietária, exigir empresa ativa e gravar venda/veículo/evento atomicamente. Resultados da validação são registrados separadamente em [validação](VALIDACAO-MODULOS.md).

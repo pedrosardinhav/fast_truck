@@ -11,10 +11,11 @@
 </head>
 <body class="shop">
   <header class="shop-header">
-    <a class="wordmark" href="#catalogo" aria-label="FasTruck, página inicial"><span class="wordmark-icon" aria-hidden="true">FT</span><span>Fas<span>Truck</span></span></a>
-    <nav class="header-nav" aria-label="Navegação principal"><a href="#catalogo">Caminhões</a><a href="#pedidos">Meus pedidos</a><a class="nav-admin" href="/admin">Painel de gestão</a><button class="header-account" id="accountButton" type="button">Entrar <span aria-hidden="true">↗</span></button></nav>
+    <a class="wordmark" href="#catalogo" aria-label="FasTruck, página inicial"><span class="wordmark-icon" aria-hidden="true"><img src="/assets/fastruck-mark.svg" alt=""></span><span>Fas<span>Truck</span></span></a>
+    <nav class="header-nav" aria-label="Navegação principal"><a href="#catalogo">Caminhões</a><a href="#pedidos">Meus pedidos</a><a class="nav-admin" href="/admin">Painel de gestão</a><button class="header-admin-trigger" id="headerAdminAccess" type="button" aria-expanded="false" aria-controls="headerAdminPanel">Admin</button><button class="header-account" id="accountButton" type="button">Entrar <span aria-hidden="true">↗</span></button></nav>
+    <div class="header-admin-panel" id="headerAdminPanel" hidden><small>Acesso administrativo</small><div><span>E-mail</span><strong id="headerAdminEmail">—</strong></div><div><span>Senha</span><strong id="headerAdminPassword">—</strong></div><button class="header-admin-fill" id="headerAdminFill" type="button">Preencher login</button><p id="headerAdminError" role="alert" hidden></p></div>
   </header>
   <main id="app" tabindex="-1" aria-live="polite"></main>
-  <footer class="shop-footer"><a class="wordmark" href="#catalogo"><span class="wordmark-icon" aria-hidden="true">FT</span><span>Fas<span>Truck</span></span></a><p>Caminhões prontos para acompanhar o ritmo do seu negócio.</p><div class="footer-links"><a href="#pedidos">Meus pedidos</a><a href="/admin">Painel de gestão</a></div><small>© FasTruck</small></footer>
+  <footer class="shop-footer"><a class="wordmark" href="#catalogo"><span class="wordmark-icon" aria-hidden="true"><img src="/assets/fastruck-mark.svg" alt=""></span><span>Fas<span>Truck</span></span></a><p>Caminhões prontos para acompanhar o ritmo do seu negócio.</p><div class="footer-links"><a href="#pedidos">Meus pedidos</a><a href="/admin">Painel de gestão</a></div><small>© FasTruck</small></footer>
 </body>
 </html>
